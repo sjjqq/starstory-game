@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>星痕之书 · 序章</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c9a84c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+    --gold: #d4a854;
+    --text: #e8e0d0;
+    --text-dim: #978c7c;
+    --panel-bg: rgba(10, 10, 20, 0.92);
+    --panel-border: rgba(180, 140, 60, 0.25);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    width:100%; height:100%; overflow:hidden;
+    background: #0a0a14;
+    font-family: 'PingFang SC', 'Noto Serif SC', 'Source Han Serif SC', serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  .game {
+    width:100%; height:100%; max-width:480px; margin:0 auto;
+    position:relative; display:flex; flex-direction:column; background:#000;
+  }
+
+  /* ===== SCENE ===== */
+  .scene {
+    flex:1; position:relative; overflow:hidden;
+    background: #0a0a14;
+  }
+
+  .scene-img {
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    opacity:0; transition: opacity 1.5s ease;
+  }
+  .scene-img.active { opacity:1; }
+
+  /* Star overlay (always visible) */
+  .stars { position:absolute; inset:0; pointer-events:none; z-index:2; }
+  .star {
+    position:absolute;
+    background: #fff; border-radius:50%;
+    animation: twinkle var(--dur) ease-in-out infinite;
+    animation-delay: var(--delay);
+    opacity:0.3;
+  }
+  @keyframes twinkle { 0%,100%{opacity:.2;transform:scale(1)} 50%{opacity:.9;transform:scale(1.8)} }
+
+  /* Moon */
+  .moon {
+    position:absolute; top:6%; right:10%;
+    width:50px; height:50px;
+    background: radial-gradient(circle at 40% 40%, #ffefc0, #d4a854);
+    border-radius:50%;
+    box-shadow: 0 0 30px rgba(212,168,84,0.4), 0 0 60px rgba(212,168,84,0.12);
+    z-index:3; transition: opacity 2s;
+  }
+
+  /* ===== CHARACTER SPRITES ===== */
+  .character-area {
+    position:absolute; bottom:0; left:0; right:0;
+    height:100%; pointer-events:none; z-index:4;
+    /* Warm ambient glow behind characters */
+    background: radial-gradient(ellipse 80% 30% at 50% 90%, rgba(20,10,5,0.4) 0%, transparent 70%);
+  }
+  .char-sprite {
+    position:absolute; bottom:0;
+    max-height:68%;
+    opacity:0; transform:translateY(30px);
+    transition: opacity 0.8s, transform 0.8s;
+    /* Soft oval vignette - fades edges into scene */
+    -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 40%, black 50%, transparent 100%);
+    mask-image: radial-gradient(ellipse 75% 70% at 50% 40%, black 50%, transparent 100%);
+    /* Gentle shadow for depth */
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.5));
+  }
+  .char-sprite.active { opacity:1; transform:translateY(0); }
+  .char-sprite.left { left:3%; max-width:40%; }
+  .char-sprite.center { left:50%; transform:translateX(-50%) translateY(30px); max-width:44%; }
+  .char-sprite.center.active { transform:translateX(-50%) translateY(0); }
+  .char-sprite.right { right:3%; max-width:40%; }
+
+  /* ===== OVERLAY EFFECTS ===== */
+  .overlay {
+    position:absolute; inset:0; pointer-events:none; z-index:5;
+    transition: background 1s;
+  }
+  .overlay.flash { background: rgba(255,255,255,0.7); }
+  .overlay.dark { background: rgba(0,0,0,0.5); }
+  .overlay.none { background: transparent; }
+
+  /* ===== DIALOG PANEL ===== */
+  .dialog-panel {
+    position:relative;
+    background: var(--panel-bg);
+    border-top:1px solid var(--panel-border);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    padding:16px 20px 20px;
+    padding-bottom:calc(20px + var(--safe-bottom));
+    min-height:160px; z-index:10;
+  }
+  .speaker-tag {
+    position:absolute; top:-14px; left:24px;
+    background:linear-gradient(135deg,#2a1a40,#1a1030);
+    border:1px solid var(--panel-border);
+    color:var(--gold); padding:4px 18px;
+    font-size:13px; font-weight:bold; border-radius:4px;
+    letter-spacing:2px; white-space:nowrap;
+  }
+  .dialog-text {
+    color:var(--text); font-size:16px; line-height:1.8;
+    min-height:48px; letter-spacing:.5px; position:relative;
+  }
+  .dialog-text .cursor {
+    display:inline-block; width:2px; height:18px;
+    background:var(--gold); margin-left:2px;
+    animation:blink .8s step-end infinite;
+    vertical-align:text-bottom;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .dialog-text.done .cursor { animation:none; opacity:0; }
+
+  .tap-hint {
+    position:absolute; bottom:8px; right:20px;
+    color:var(--text-dim); font-size:11px;
+    animation:hintPulse 2s ease-in-out infinite;
+  }
+  @keyframes hintPulse { 0%,100%{opacity:.3} 50%{opacity:.8} }
+
+  .choices {
+    display:flex; flex-direction:column; gap:8px; padding:8px 0;
+  }
+  .choice-btn {
+    background:linear-gradient(135deg,rgba(40,25,60,.8),rgba(20,10,30,.8));
+    border:1px solid rgba(180,140,60,.3);
+    color:var(--text); padding:14px 18px; font-size:15px;
+    border-radius:6px; text-align:left; cursor:pointer;
+    transition:all .2s; font-family:inherit; letter-spacing:.5px;
+  }
+  .choice-btn:active {
+    background:rgba(180,140,60,.2); border-color:var(--gold);
+    transform:scale(.98);
+  }
+  .choice-btn .choice-icon { color:var(--gold); margin-right:8px; }
+
+  /* ===== TITLE SCREEN ===== */
+  .title-screen {
+    position:absolute; inset:0; z-index:20;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at 50% 40%,#1a1a3e 0%,#050510 100%);
+    transition:opacity 1s;
+  }
+  .title-screen.hidden { opacity:0; pointer-events:none; }
+  .title-game {
+    font-size:36px; color:var(--gold); letter-spacing:8px;
+    text-shadow:0 0 30px rgba(212,168,84,.4); margin-bottom:8px;
+  }
+  .title-sub {
+    font-size:14px; color:var(--text-dim); letter-spacing:4px; margin-bottom:48px;
+  }
+  .title-start {
+    background:transparent; border:1px solid var(--gold); color:var(--gold);
+    padding:12px 40px; font-size:16px; letter-spacing:4px;
+    border-radius:4px; cursor:pointer; font-family:inherit; transition:all .3s;
+  }
+  .title-start:active { background:rgba(212,168,84,.15); box-shadow:0 0 20px rgba(212,168,84,.2); }
+
+  /* ===== TOP BAR ===== */
+  .top-bar {
+    position:absolute; top:0; left:0; right:0; z-index:15;
+    display:flex; justify-content:space-between;
+    padding:12px 16px; padding-top:calc(12px + var(--safe-top));
+  }
+  .menu-btn {
+    background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.1);
+    color:rgba(255,255,255,.6); width:36px; height:36px;
+    border-radius:50%; font-size:15px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:all .2s;
+  }
+  .menu-btn:active { background:rgba(255,255,255,.1); color:#fff; }
+  .menu-btn.music-on { border-color: var(--gold); color: var(--gold); }
+
+  /* ===== MENUS ===== */
+  .menu-overlay {
+    position:absolute; inset:0; z-index:25;
+    background:rgba(5,5,16,.95);
+    display:flex; flex-direction:column; align-items:center;
+    padding:60px 20px 40px;
+    opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  .menu-overlay.show { opacity:1; pointer-events:auto; }
+  .menu-title { color:var(--gold); font-size:20px; letter-spacing:4px; margin-bottom:24px; }
+  .save-slots { display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px; }
+  .save-slot {
+    display:flex; justify-content:space-between; align-items:center;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+    padding:12px 16px; border-radius:6px; color:var(--text-dim);
+    font-size:14px; cursor:pointer; transition:all .2s;
+  }
+  .save-slot:active { background:rgba(255,255,255,.1); }
+  .save-slot .slot-info { font-size:12px; color:var(--text-dim); }
+  .save-slot .slot-actions { display:flex; gap:8px; }
+  .slot-btn {
+    background:transparent; border:1px solid var(--text-dim);
+    color:var(--text-dim); padding:4px 10px; border-radius:3px;
+    font-size:12px; cursor:pointer; font-family:inherit;
+  }
+  .slot-btn:active { border-color:var(--gold); color:var(--gold); }
+  .menu-close {
+    margin-top:24px; background:transparent; border:1px solid var(--text-dim);
+    color:var(--text-dim); padding:10px 30px; border-radius:4px;
+    font-size:14px; cursor:pointer; font-family:inherit; letter-spacing:2px;
+  }
+  .menu-close:active { border-color:var(--gold); color:var(--gold); }
+
+  .log-overlay {
+    position:absolute; inset:0; z-index:25;
+    background:rgba(5,5,16,.95);
+    display:flex; flex-direction:column;
+    padding:60px 20px 20px;
+    opacity:0; pointer-events:none; transition:opacity .3s; overflow-y:auto;
+  }
+  .log-overlay.show { opacity:1; pointer-events:auto; }
+  .log-entry {
+    color:var(--text-dim); font-size:14px;
+    padding:8px 0; border-bottom:1px solid rgba(255,255,255,.05);
+  }
+  .log-entry .log-speaker { color:var(--gold); font-weight:bold; margin-right:6px; }
+
+  @media (min-width:481px) { .game { border-left:1px solid #1a1a2e; border-right:1px solid #1a1a2e; } }
+  @media (max-height:600px) {
+    .dialog-panel { min-height:120px; padding:12px 16px 16px; }
+    .dialog-text { font-size:14px; line-height:1.6; }
+    .char-sprite { max-height:50%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="game" id="game">
+
+  <div class="scene" id="scene">
+    <!-- Scene background images -->
+    <img class="scene-img" id="bg-village" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FC53F8813-04F2-50BF-B050-7744B4B95704-ecc84ef5ae78579d4667f98a9e1df90d-1779944702344126469-Ld4LqVHSBj.jpg?Expires=1782536702&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=lpZaqoSTL%2BfG%2BIKWRcHejHVuH%2Fo%3D" alt="村庄">
+    <img class="scene-img" id="bg-forest" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F1EA833CA-668C-558A-8F77-0C444D5C773F-493f2b41bca70a4ac4e5f2f55b5c8c03-1779944740438076291-ND47qE2oLcb.jpg?Expires=1782536740&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=lrSsY8aeHVpwnDqPikhCgsYtPnU%3D" alt="永夜森林">
+    <img class="scene-img" id="bg-ruins" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FF5FBA353-F304-5F37-8532-127C3DCD6165-7bf51828f000207ccde868e0df7c73d1-1779944784906388297-Y5RE2LHeGrQ.jpg?Expires=1782536785&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=I4xQztTWvPMXh2EzdYAAw%2BQrg0I%3D" alt="古代遗迹">
+
+    <img class="scene-img" id="bg-port" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FD256C66A-4DFA-5071-9D0B-26FC3FF9F125-22eabf79733ef7a1320118b72aba5f65-1779961614388535976-Sj23MV3Ax2y.jpg?Expires=1782553614&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=gLkynxbk4iRyeYKOhBe6LBn5EOg%3D" alt="十字风港">
+    <img class="scene-img" id="bg-airship" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F17CD154F-2255-5EB0-B116-315E560D861F-80771f21123469512d377214c87f929d-1779961642720302782-4tJafW86Xep.jpg?Expires=1782553642&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=WdA5P1O9hEe%2B8FYwQwkYRrN%2FVCM%3D" alt="云端飞艇">
+    <img class="scene-img" id="bg-floatcity" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F36C024A1-BC28-55D9-AC1D-83A23F69F5AE-f28fa5d230e25ef63a342349136c4081-1779961682120989157-TtWHhvNDMiP.jpg?Expires=1782553682&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=Hh5ej22azhcyX5LCm3g3rxL9cGk%3D" alt="浮空城">
+    <img class="scene-img" id="bg-ice" src="https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=960&q=80" alt="冰原">
+    <img class="scene-img" id="bg-library" src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=960&q=80" alt="黑曜图书馆">
+    <img class="scene-img" id="bg-skycity" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F9049BFC4-80B1-547F-BCE0-AA9ADD601FA6-f08a435ddc6e306d74a601735966741e-1779969900318569402-J75M83cwWPp.jpg?Expires=1782561900&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=BSZ2KJ%2FnNjKQyxGgYJaSi18Oo3A%3D" alt="天空之城">
+    <img class="scene-img" id="bg-crystaltower" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FC7082E9B-5B54-5505-85B9-902C3B9AB23B-d9ee38ddf0d86ce6b71a8965e7710f83-1779969908347026102-Pi4wW8A8d2w.jpg?Expires=1782561908&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=bHsZ3mA9j%2BXy%2FzCNMXdddpAk9Ng%3D" alt="水晶塔">
+    <img class="scene-img" id="bg-abyss" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F293E6303-4E9C-5CCD-BB3C-B953AB003782-d793f2bb0aa71fdc7c1977086ad31a0f-1779971497543260054-Sr9LEViKosU.jpg?Expires=1782563497&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=e9nw3I3aooC%2F3gGhS8NTH68Stps%3D" alt="深渊入口">
+    <img class="scene-img" id="bg-abyssinside" src="https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FA2A99917-19C7-5735-B88C-0380030F1A0D-8fa1b4624be8fad8d9fd18bd95d15304-1779971523589458176-BEUDCPXjHiv.jpg?Expires=1782563523&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=%2BR73VXkH1gmCR3ZP%2FQCGYmcCvFw%3D" alt="深渊内部">
+
+    <div class="stars" id="stars"></div>
+    <div class="moon" id="moon"></div>
+
+    <!-- Character sprites -->
+    <div class="character-area" id="character-area"></div>
+
+    <!-- Effect overlay -->
+    <div class="overlay none" id="overlay"></div>
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <button class="menu-btn music-on" id="music-btn" onclick="game.toggleMusic()" title="音乐">🎵</button>
+      <button class="menu-btn" onclick="game.toggleMenu()" title="存档">💾</button>
+      <button class="menu-btn" onclick="game.toggleLog()" title="回顾">📜</button>
+      <button class="menu-btn" onclick="game.autoSave()" title="快速存档">⚡</button>
+    </div>
+  </div>
+
+  <!-- Dialog -->
+  <div class="dialog-panel" id="dialog-panel">
+    <div class="speaker-tag" id="speaker-tag" style="opacity:0"></div>
+    <div class="dialog-text" id="dialog-text"></div>
+    <div class="choices" id="choices"></div>
+    <div class="tap-hint" id="tap-hint">点击继续 ▸</div>
+  </div>
+
+  <!-- Title -->
+  <div class="title-screen" id="title-screen">
+    <div class="title-game">星 痕 之 书</div>
+    <div class="title-sub">STARSCRIPT · 序章</div>
+    <button class="title-start" onclick="game.start()">开 始 旅 程</button>
+  </div>
+
+  <!-- Save Menu -->
+  <div class="menu-overlay" id="save-menu">
+    <div class="menu-title">存 档</div>
+    <div class="save-slots" id="save-slots"></div>
+    <button class="menu-close" onclick="game.toggleMenu()">关 闭</button>
+  </div>
+
+  <!-- Log -->
+  <div class="log-overlay" id="log-overlay">
+    <div class="menu-title">回 顾</div>
+    <div id="log-content"></div>
+    <button class="menu-close" style="margin-top:16px" onclick="game.toggleLog()">关 闭</button>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// PROCEDURAL BGM ENGINE (Web Audio API)
+// ============================================================
+class BGMEngine {
+  constructor() {
+    this.ctx = null;
+    this.active = true;
+    this.currentScene = null;
+    this.nodes = [];
+    this.gainNode = null;
+    this.initOnInteraction();
+  }
+
+  initOnInteraction() {
+    const handler = () => {
+      if (!this.ctx) {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.gainNode = this.ctx.createGain();
+        this.gainNode.gain.value = 0.22;
+        this.gainNode.connect(this.ctx.destination);
+      }
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+    };
+    document.addEventListener('click', handler, {once:false});
+    document.addEventListener('touchstart', handler, {once:false});
+  }
+
+  stop() {
+    this.nodes.forEach(n => { try { n.stop(); } catch(e) {} });
+    this.nodes = [];
+  }
+
+  playScene(scene) {
+    if (!this.ctx || !this.active) return;
+    this.stop();
+    this.currentScene = scene;
+
+    switch(scene) {
+      case 'village': this.playVillage(); break;
+      case 'tense': this.playTense(); break;
+      case 'forest': this.playForest(); break;
+      case 'ruins': this.playRuins(); break;
+      case 'port': this.playPortTown(); break;
+      case 'airship': this.playAirship(); break;
+      case 'floatcity': this.playFloatCity(); break;
+      case 'ice': this.playIce(); break;
+      case 'library': this.playLibrary(); break;
+      case 'skycity': this.playSkycity(); break;
+      case 'crystaltower': this.playSkycity(); break;
+      case 'battle': this.playBattle(); break;
+      case 'abyss': this.playAbyss(); break;
+      case 'abyssinside': this.playAbyss(); break;
+      case 'finale': this.playFinale(); break;
+    }
+  }
+
+  // Warm, peaceful village night - pentatonic ambient
+  playVillage() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    // Drone pad - D3 + A3
+    const freqs = [146.83, 220.00, 293.66, 440.00];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i < 2 ? 'sine' : 'triangle';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.03 * (3-i), now + 1.5);
+      gain.gain.linearRampToValueAtTime(0.025 * (3-i), now + 3);
+      osc.connect(gain);
+      gain.connect(this.gainNode);
+      osc.start(now);
+      this.nodes.push(osc);
+
+      // Gentle LFO
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.08 + i * 0.03;
+      lfoGain.gain.value = 0.015;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start(now);
+      this.nodes.push(lfo);
+    });
+
+    // Soft bell-like melody - pentatonic D major
+    const melody = [293.66, 440.00, 392.00, 293.66, 329.63, 440.00, 392.00, 329.63];
+    this.playMelody(melody, 2.5, 0.04, 'sine');
+  }
+
+  // Tense / urgent - when the star falls and book appears
+  playTense() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    // Low drone with tension - D diminished feel
+    const freqs = [73.42, 146.83, 220.00, 277.18, 349.23];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'sawtooth' : (i < 3 ? 'triangle' : 'sine');
+      osc.frequency.value = f;
+      osc.detune.value = i % 3 === 0 ? 10 : (i % 3 === 1 ? -10 : 0);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.025 * (4-i), now + 0.8);
+      gain.gain.linearRampToValueAtTime(0.02 * (4-i), now + 2);
+      osc.connect(gain);
+      gain.connect(this.gainNode);
+      osc.start(now);
+      this.nodes.push(osc);
+
+      // Faster, more aggressive LFO
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 1.5 + i * 0.5;
+      lfoGain.gain.value = 0.012;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start(now);
+      this.nodes.push(lfo);
+    });
+
+    // Pulsing bass rhythm
+    const bass = ctx.createOscillator();
+    const bassGain = ctx.createGain();
+    bass.type = 'triangle';
+    bass.frequency.value = 73.42;
+    bassGain.gain.setValueAtTime(0, now);
+    // Pulsing pattern
+    for (let t = 0; t < 16; t++) {
+      const time = now + t * 0.4;
+      bassGain.gain.setValueAtTime(0.04, time);
+      bassGain.gain.setValueAtTime(0.01, time + 0.2);
+    }
+    bass.connect(bassGain);
+    bassGain.connect(this.gainNode);
+    bass.start(now);
+    this.nodes.push(bass);
+
+    // Tense melody - diminished arpeggios
+    const melody = [220.00, 277.18, 349.23, 277.18, 220.00, 349.23, 293.66, 277.18];
+    this.playMelody(melody, 1.4, 0.05, 'triangle');
+  }
+
+  // Cliffside port town - warm folk adventure
+  playPortTown() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    const freqs = [130.81, 196.00, 261.63, 329.63];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i < 2 ? 'triangle' : 'sine';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.028 * (3-i), now + 1);
+      gain.gain.linearRampToValueAtTime(0.022 * (3-i), now + 2.5);
+      osc.connect(gain); gain.connect(this.gainNode); osc.start(now); this.nodes.push(osc);
+      const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.1 + i * 0.04; lfoGain.gain.value = 0.012;
+      lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start(now); this.nodes.push(lfo);
+    });
+    // Warm accordion-like melody - C major
+    const melody = [261.63, 329.63, 392.00, 329.63, 293.66, 261.63, 246.94, 261.63];
+    this.playMelody(melody, 2.0, 0.038, 'triangle');
+  }
+
+  // Soaring airship - wide open intervals
+  playAirship() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    const freqs = [98.00, 196.00, 293.66, 392.00, 587.33];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'triangle' : 'sine';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.02 * (4-i), now + 2);
+      gain.gain.linearRampToValueAtTime(0.016 * (4-i), now + 3);
+      osc.connect(gain); gain.connect(this.gainNode); osc.start(now); this.nodes.push(osc);
+      const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.06 + i * 0.02; lfoGain.gain.value = 0.01;
+      lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start(now); this.nodes.push(lfo);
+    });
+    // Soaring melody - G major wide intervals
+    const melody = [392.00, 293.66, 440.00, 392.00, 293.66, 440.00, 523.25, 440.00, 392.00, 349.23];
+    this.playMelody(melody, 2.8, 0.04, 'sine');
+  }
+
+  // Frozen tundra - cold, vast, isolating
+  playIce() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    // B minor drone - cold and desolate
+    const freqs = [61.74, 123.47, 185.00, 246.94, 369.99];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'triangle' : 'sine';
+      osc.frequency.value = f;
+      osc.detune.value = (i % 2 === 0 ? 6 : -6);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.018 * (4-i), now + 3);
+      gain.gain.linearRampToValueAtTime(0.015 * (4-i), now + 5);
+      osc.connect(gain); gain.connect(this.gainNode); osc.start(now); this.nodes.push(osc);
+      const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.03 + i * 0.01; lfoGain.gain.value = 0.02;
+      lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start(now); this.nodes.push(lfo);
+    });
+    // Sparse, high melody - B minor, cold intervals
+    const melody = [493.88, 440.00, 369.99, 440.00, 493.88, 369.99, 329.63, 369.99];
+    this.playMelody(melody, 4.0, 0.03, 'sine');
+  }
+
+  // Ancient library - deep, resonant, mystical
+  playLibrary() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    // D minor drone - ancient and mysterious
+    const freqs = [73.42, 146.83, 220.00, 293.66, 440.00];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'triangle' : (i < 3 ? 'sine' : 'triangle');
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.022 * (4-i), now + 2);
+      gain.gain.linearRampToValueAtTime(0.018 * (4-i), now + 4);
+      osc.connect(gain); gain.connect(this.gainNode); osc.start(now); this.nodes.push(osc);
+      const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.04 + i * 0.015; lfoGain.gain.value = 0.016;
+      lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start(now); this.nodes.push(lfo);
+    });
+    // Ethereal melody - D minor, reverent
+    const melody = [293.66, 349.23, 440.00, 392.00, 349.23, 293.66, 261.63, 293.66];
+    this.playMelody(melody, 3.2, 0.035, 'sine');
+  }
+
+  // Desolate floating city - eerie ambience
+  playFloatCity() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    const freqs = [87.31, 130.81, 174.61, 261.63, 349.23];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'triangle' : (i < 2 ? 'sawtooth' : 'sine');
+      osc.frequency.value = f;
+      osc.detune.value = (i % 2 === 0 ? 8 : -8);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.02 * (4-i), now + 2.5);
+      gain.gain.linearRampToValueAtTime(0.018 * (4-i), now + 4);
+      osc.connect(gain); gain.connect(this.gainNode); osc.start(now); this.nodes.push(osc);
+      const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.04 + i * 0.01; lfoGain.gain.value = 0.018;
+      lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start(now); this.nodes.push(lfo);
+    });
+    // Distant, fragmented melody - F minor
+    const melody = [349.23, 311.13, 261.63, 311.13, 349.23, 261.63, 233.08, 261.63];
+    this.playMelody(melody, 3.5, 0.035, 'sine');
+  }
+
+  // Mysterious forest - minor ambient
+  playForest() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    // E minor drone
+    const freqs = [82.41, 164.81, 246.94, 329.63];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i < 2 ? 'triangle' : 'sine';
+      osc.frequency.value = f;
+      osc.detune.value = (i % 2 === 0 ? 5 : -5);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.025 * (3-i), now + 2);
+      gain.gain.linearRampToValueAtTime(0.02 * (3-i), now + 4);
+      osc.connect(gain);
+      gain.connect(this.gainNode);
+      osc.start(now);
+      this.nodes.push(osc);
+
+      // Slow evolving LFO
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.06 + i * 0.02;
+      lfoGain.gain.value = 0.02;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start(now);
+      this.nodes.push(lfo);
+    });
+
+    // Eerie high melody
+    const melody = [329.63, 392.00, 329.63, 293.66, 246.94, 329.63, 293.66, 246.94];
+    this.playMelody(melody, 3.0, 0.035, 'sine');
+  }
+
+  // Epic ruins - phrygian mode, organ-like
+  playRuins() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    // A phrygian drone
+    const freqs = [110.00, 165.00, 220.00, 330.00, 440.00];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'triangle' : (i < 3 ? 'sawtooth' : 'sine');
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.02 * (4-i), now + 2);
+      gain.gain.linearRampToValueAtTime(0.018 * (4-i), now + 3);
+      osc.connect(gain);
+      gain.connect(this.gainNode);
+      osc.start(now);
+      this.nodes.push(osc);
+
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.05 + i * 0.015;
+      lfoGain.gain.value = 0.015;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start(now);
+      this.nodes.push(lfo);
+    });
+
+    // Epic melody - A phrygian
+    const melody = [220.00, 261.63, 220.00, 195.00, 174.61, 261.63, 293.66, 261.63, 220.00, 195.00];
+    this.playMelody(melody, 2.2, 0.045, 'triangle');
+  }
+
+  playMelody(notes, noteDuration, vol, type) {
+    const ctx = this.ctx, now = ctx.currentTime;
+    notes.forEach((freq, i) => {
+      const start = now + i * noteDuration + Math.random() * 0.8;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(vol, start + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + noteDuration * 0.85);
+      osc.connect(gain);
+      gain.connect(this.gainNode);
+      osc.start(start);
+      osc.stop(start + noteDuration);
+      this.nodes.push(osc);
+    });
+
+    // Loop the melody
+    setTimeout(() => {
+      if (this.active && this.currentScene) {
+        this.playMelody(notes, noteDuration, vol, type);
+      }
+    }, noteDuration * notes.length * 1000 + 2000);
+  }
+
+  playAbyss() {
+    this.stop(); const t = this.actx.currentTime;
+    // Deep rumble
+    const rum = this.actx.createOscillator();
+    rum.type = 'sawtooth';
+    rum.frequency.setValueAtTime(40, t);
+    const rumG = this.actx.createGain();
+    rumG.gain.setValueAtTime(this.vol * 0.15, t);
+    rum.connect(rumG).connect(this.master);
+    rum.start(t); rum.stop(t + 8);
+    // Eerie whistle
+    const wh = this.actx.createOscillator();
+    wh.type = 'sine';
+    wh.frequency.setValueAtTime(800, t);
+    wh.frequency.linearRampToValueAtTime(1200, t + 4);
+    wh.frequency.linearRampToValueAtTime(600, t + 8);
+    const whG = this.actx.createGain();
+    whG.gain.setValueAtTime(this.vol * 0.08, t);
+    whG.gain.linearRampToValueAtTime(0, t + 8);
+    wh.connect(whG).connect(this.master);
+    wh.start(t); wh.stop(t + 8);
+    // Heartbeat pulse
+    for (let i = 0; i < 8; i++) {
+      const h = this.actx.createOscillator();
+      h.type = 'sine';
+      h.frequency.setValueAtTime(60, t + i);
+      const hG = this.actx.createGain();
+      hG.gain.setValueAtTime(0, t + i);
+      hG.gain.linearRampToValueAtTime(this.vol * 0.2, t + i + 0.15);
+      hG.gain.linearRampToValueAtTime(0, t + i + 0.6);
+      h.connect(hG).connect(this.master);
+      h.start(t + i); h.stop(t + i + 1);
+    }
+  }
+
+  playFinale() {
+    this.stop(); const t = this.actx.currentTime;
+    // Triumphant chord
+    [261.63, 329.63, 392.00, 523.25].forEach((f, i) => {
+      const o = this.actx.createOscillator();
+      o.type = i < 3 ? 'triangle' : 'sine';
+      o.frequency.setValueAtTime(f, t);
+      const g = this.actx.createGain();
+      g.gain.setValueAtTime(this.vol * 0.12, t);
+      g.gain.linearRampToValueAtTime(this.vol * 0.08, t + 2);
+      g.gain.linearRampToValueAtTime(0, t + 5);
+      o.connect(g).connect(this.master);
+      o.start(t); o.stop(t + 5);
+    });
+    // Rising melody
+    const mel = this.actx.createOscillator();
+    mel.type = 'sine';
+    mel.frequency.setValueAtTime(523.25, t);
+    mel.frequency.linearRampToValueAtTime(1046.50, t + 3);
+    const melG = this.actx.createGain();
+    melG.gain.setValueAtTime(this.vol * 0.1, t);
+    melG.gain.linearRampToValueAtTime(0, t + 5);
+    mel.connect(melG).connect(this.master);
+    mel.start(t); mel.stop(t + 5);
+  }
+
+  // SFX: short effects
+  playSFX(type) {
+    if (!this.ctx || !this.active) return;
+    const ctx = this.ctx, now = ctx.currentTime;
+
+    switch(type) {
+      case 'flash': {
+        // Magical shimmer
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(1760, now + 0.15);
+        osc.frequency.exponentialRampToValueAtTime(440, now + 0.5);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.connect(gain);
+        gain.connect(this.gainNode);
+        osc.start(now);
+        osc.stop(now + 0.7);
+        // Add a sub for body
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.value = 220;
+        gain2.gain.setValueAtTime(0.06, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc2.connect(gain2);
+        gain2.connect(this.gainNode);
+        osc2.start(now);
+        osc2.stop(now + 0.9);
+        break;
+      }
+      case 'book': {
+        // Book open - low rumble + sparkle
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.8);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+        osc.connect(gain);
+        gain.connect(this.gainNode);
+        osc.start(now);
+        osc.stop(now + 1.1);
+        break;
+      }
+      case 'choice': {
+        // UI click
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 600;
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(this.gainNode);
+        osc.start(now);
+        osc.stop(now + 0.1);
+        break;
+      }
+    }
+  }
+
+  // Sky City - mysterious, ancient, time-frozen ambience
+  playSkycity() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    const freqs = [98.00, 146.83, 196.00, 293.66, 392.00];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'triangle' : (i < 3 ? 'sine' : 'triangle');
+      osc.frequency.value = f;
+      osc.detune.value = (i % 2 === 0 ? 6 : -6);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.022 * (4-i), now + 2.5);
+      gain.gain.linearRampToValueAtTime(0.018 * (4-i), now + 4);
+      osc.connect(gain); gain.connect(this.gainNode); osc.start(now); this.nodes.push(osc);
+      const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.03 + i * 0.012; lfoGain.gain.value = 0.02;
+      lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start(now); this.nodes.push(lfo);
+    });
+    // Ethereal, suspended melody - G major, floating
+    const melody = [392.00, 440.00, 523.25, 493.88, 440.00, 392.00, 349.23, 392.00];
+    this.playMelody(melody, 3.5, 0.035, 'sine');
+  }
+
+  // Battle - intense, driving, urgent
+  playBattle() {
+    const ctx = this.ctx, now = ctx.currentTime;
+    const freqs = [73.42, 110.00, 146.83, 220.00, 293.66];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i < 2 ? 'sawtooth' : 'triangle';
+      osc.frequency.value = f;
+      osc.detune.value = (i % 2 === 0 ? 10 : -10);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.025 * (4-i), now + 0.5);
+      gain.gain.linearRampToValueAtTime(0.02 * (4-i), now + 2);
+      osc.connect(gain); gain.connect(this.gainNode); osc.start(now); this.nodes.push(osc);
+      const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.15 + i * 0.05; lfoGain.gain.value = 0.025;
+      lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start(now); this.nodes.push(lfo);
+    });
+    // Urgent melody - D minor, driving
+    const melody = [293.66, 349.23, 293.66, 261.63, 293.66, 392.00, 349.23, 293.66, 220.00, 261.63];
+    this.playMelody(melody, 1.8, 0.045, 'triangle');
+  }
+
+  toggle() {
+    this.active = !this.active;
+    if (!this.active) {
+      this.stop();
+    } else if (this.currentScene) {
+      this.playScene(this.currentScene);
+    }
+    return this.active;
+  }
+}
+
+// ============================================================
+// VISUAL NOVEL ENGINE
+// ============================================================
+class VisualNovel {
+  constructor() {
+    this.script = null;
+    this.index = 0;
+    this.currentLine = null;
+    this.isTyping = false;
+    this.isChoice = false;
+    this.typingTimer = null;
+    this.typingIndex = 0;
+    this.fullText = '';
+    this.dialogText = document.getElementById('dialog-text');
+    this.speakerTag = document.getElementById('speaker-tag');
+    this.choicesEl = document.getElementById('choices');
+    this.tapHint = document.getElementById('tap-hint');
+    this.overlay = document.getElementById('overlay');
+    this.charArea = document.getElementById('character-area');
+    this.logData = [];
+    this.currentScene = '';
+    this.currentSpeaker = '';
+    this.bgm = new BGMEngine();
+
+    // Character image URLs
+    this.charImages = {
+      'kaine': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F97802077-9A97-5F81-A63D-02EB95DFED98-e2f2c8e9224b410329abb5307eba5b63-1779951456606295317-QE5QDb2uhEG.jpg?Expires=1782543456&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=yPSdyD74nVCobMOzYyLBb5VbL%2Fo%3D',
+      'lyra': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FEE40A68E-49DD-5E31-81D2-1267D6F95D49-39f841ed3c0bde6182148e08bae04be7-1779952805213483753-BnVNFDe6oTH.jpg?Expires=1782544805&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=V2VQUO5FyDZNN%2BJ3Xgli%2Bg2hJq4%3D',
+      'elder': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F917EF556-46EB-57CE-8FCA-4B3811BE255B-3d30849f2d769098b318325aac60bcea-1779952832891674881-STouzfMcu2r.jpg?Expires=1782544832&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=MMcGA0hMTjPKNDsEHTH2JEiLBYU%3D',
+      'finn': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F95744B8D-7189-5D14-A0CC-949A1810B378-a830c8458e72b7fee2213f112aeb1166-1779961579572316035-FzPZC4GbZTf.jpg?Expires=1782553579&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=nXo5P%2BK0G7nBcToe6pKNgmPieuE%3D',
+      'vera': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F2A059AF9-5783-52E9-B415-CC84D5357A19-a1ca40dc3f62b719d92fb88681d07d8b-1779969339541089684-cf7AZXJCUHE.jpg?Expires=1782561339&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=OmbKKR8dThOureBErI30f%2FjIT90%3D',
+      'maloveus': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F787EADE4-0967-5C9B-824C-2AC8E68D1B07-fc4af2073106467e6faa810d796b465a-1779969937097294757-Gd4e2WnnqZ5.jpg?Expires=1782561937&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=dHiEedP59F32Se5OxOjitH4iLLs%3D',
+      'gu-nianhuai-pol': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FF51CA9AC-90DA-5CB8-8899-FC244FEA38C2-ea557f41388d062e03b40e1dcee84d14-1779971523655401141-FfBr4iPrArs.jpg?Expires=1782563523&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=47186xGlaruGzzVVXdUODdw8A70%3D',
+      'gu-nianhuai-biz': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FD86FC77B-AA38-5969-9EA6-AA66F589A9E5-0aca18221635cfafc3c899b1a008ee13-1779971538566603104-ieM4UmxXDTE.jpg?Expires=1782563538&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=2CExZOm0wrSmOg12BcVKI0EtFh8%3D',
+      'gu-nianhuai-star': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F11AC7A62-99CA-5367-BC5D-2657A1B47960-24404c49ef85a3c10a66b5ed183b0dc8-1779971552099284610-eDB9BumDkip.jpg?Expires=1782563552&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=w%2BZciauhSR6I2p3P0diALoUepH4%3D',
+    
+      'abyss': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2F293E6303-4E9C-5CCD-BB3C-B953AB003782-d793f2bb0aa71fdc7c1977086ad31a0f-1779971497543260054-Sr9LEViKosU.jpg?Expires=1782563497&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=e9nw3I3aooC%2F3gGhS8NTH68Stps%3D',
+      'abyssinside': 'https://sase-public-server-files.oss-cn-hangzhou.aliyuncs.com/saas-1829547276560185%2Fwm_embed_out_WMT_PURE_IMAGE%2FA2A99917-19C7-5735-B88C-0380030F1A0D-8fa1b4624be8fad8d9fd18bd95d15304-1779971523589458176-BEUDCPXjHiv.jpg?Expires=1782563523&OSSAccessKeyId=LTAI5tMcHHYKbtQ8Q7bF4TBC&Signature=%2BR73VXkH1gmCR3ZP%2FQCGYmcCvFw%3D',};
+
+    this.generateStars();
+    this.bindClicks();
+  }
+
+  generateStars() {
+    const container = document.getElementById('stars');
+    let html = '';
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * 100, y = Math.random() * 60;
+      const size = Math.random() * 1.5 + 0.8;
+      const dur = Math.random() * 3 + 2;
+      const delay = Math.random() * 5;
+      html += `<div class="star" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;--dur:${dur}s;--delay:${delay}s"></div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  bindClicks() {
+    document.getElementById('game').addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('.menu-overlay') ||
+          e.target.closest('.log-overlay') || e.target.closest('.title-screen')) return;
+      if (this.isChoice) return;
+      if (this.isTyping) { this.finishTyping(); }
+      else { this.advance(); }
+    });
+  }
+
+  toggleMusic() {
+    const on = this.bgm.toggle();
+    const btn = document.getElementById('music-btn');
+    if (on) { btn.classList.add('music-on'); btn.textContent = '🎵'; }
+    else { btn.classList.remove('music-on'); btn.textContent = '🔇'; }
+  }
+
+  start() {
+    document.getElementById('title-screen').classList.add('hidden');
+    this.script = SCRIPT;
+    this.index = 0;
+    this.logData = [];
+    const saved = null; // Skip auto-save load for fresh start
+    /*
+    const saved = this.loadGamePvt('auto');
+    if (saved) {
+      this.index = saved.index;
+      this.logData = saved.log || [];
+      this.setScenePvt(saved.scene || 'village');
+    }
+    */
+    this.bgm.playScene('village');
+    this.advance();
+  }
+
+  advance() {
+    if (!this.script || this.index >= this.script.length) { this.showTitle(); return; }
+    const line = this.script[this.index];
+    this.currentLine = line;
+    this.index++;
+    if (line.cmd) { this.handleCommand(line); return; }
+    if (line.choices) { this.showChoices(line); return; }
+    this.showDialog(line);
+  }
+
+  handleCommand(line) {
+    const cmd = line.cmd;
+    switch (cmd) {
+      case 'scene': this.setScenePvt(line.bg); break;
+      case 'bgm': this.bgm.playScene(line.bg); break;
+      case 'sfx': this.bgm.playSFX(line.effect || ''); break;
+      case 'effect':
+        this.setEffect(line.effect || 'none');
+        if (line.effect === 'flash') this.bgm.playSFX('flash');
+        break;
+      case 'char': this.setCharacter(line.id, line.pos || 'center', line.show !== false); break;
+      case 'moon': document.getElementById('moon').style.opacity = line.show ? '1' : '0'; break;
+      case 'jump': this.index = line.target; break;
+      case 'label': break;
+    }
+    setTimeout(() => this.advance(), line.wait || 100);
+  }
+
+  setScenePvt(name) {
+    this.currentScene = name;
+    document.querySelectorAll('.scene-img').forEach(el => el.classList.remove('active'));
+    const bg = document.getElementById('bg-' + name);
+    if (bg) bg.classList.add('active');
+    this.bgm.playScene(name);
+  }
+
+  setEffect(name) {
+    this.overlay.className = 'overlay ' + name;
+    if (name !== 'none') setTimeout(() => { this.overlay.className = 'overlay none'; }, 800);
+  }
+
+  setCharacter(id, pos, show) {
+    const existing = document.getElementById('char-' + id);
+    if (existing) existing.remove();
+    if (!show) return;
+
+    const imgUrl = this.charImages[id];
+    if (!imgUrl) return;
+
+    const el = document.createElement('img');
+    el.className = 'char-sprite ' + pos;
+    el.id = 'char-' + id;
+    el.src = imgUrl;
+    el.alt = id;
+    el.loading = 'lazy';
+
+    this.charArea.appendChild(el);
+    // Trigger transition after append
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => el.classList.add('active'));
+    });
+  }
+
+  showDialog(line) {
+    this.isChoice = false;
+    this.choicesEl.innerHTML = '';
+    this.fullText = line.text || '';
+    const speaker = line.speaker || '';
+    this.currentSpeaker = speaker;
+    const tag = document.getElementById('speaker-tag');
+    if (speaker) { tag.textContent = speaker; tag.style.opacity = '1'; }
+    else { tag.style.opacity = '0'; }
+    if (line.narration) { this.dialogText.style.fontStyle = 'italic'; this.dialogText.style.color = 'var(--text-dim)'; }
+    else { this.dialogText.style.fontStyle = 'normal'; this.dialogText.style.color = 'var(--text)'; }
+    this.typingIndex = 0;
+    this.isTyping = true;
+    this.dialogText.classList.remove('done');
+    this.dialogText.innerHTML = '';
+    this.tapHint.style.display = 'none';
+    this.typingTimer = setInterval(() => this.typeChar(), 35);
+  }
+
+  typeChar() {
+    if (this.typingIndex < this.fullText.length) {
+      this.dialogText.innerHTML = this.fullText.substring(0, this.typingIndex + 1).replace(/\n/g, '<br>') + '<span class="cursor"></span>';
+      this.typingIndex++;
+    } else { this.finishTyping(); }
+  }
+
+  finishTyping() {
+    clearInterval(this.typingTimer);
+    this.isTyping = false;
+    this.dialogText.innerHTML = this.fullText.replace(/\n/g, '<br>');
+    this.dialogText.classList.add('done');
+    this.tapHint.style.display = 'block';
+    if (this.currentSpeaker || !this.currentLine?.narration) {
+      this.logData.push({ speaker: this.currentSpeaker || '旁白', text: this.fullText });
+    }
+  }
+
+  showChoices(line) {
+    this.isChoice = true;
+    this.isTyping = false;
+    clearInterval(this.typingTimer);
+    this.dialogText.innerHTML = (line.prompt || '') + '<span class="cursor"></span>';
+    this.tapHint.style.display = 'none';
+    this.choicesEl.innerHTML = '';
+    this.bgm.playSFX('choice');
+    line.choices.forEach((choice) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.innerHTML = `<span class="choice-icon">▸</span> ${choice.text}`;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.logData.push({ speaker: '选择', text: choice.text });
+        this.isChoice = false;
+        this.choicesEl.innerHTML = '';
+        this.dialogText.innerHTML = '';
+        this.tapHint.style.display = 'block';
+        if (choice.jump !== undefined) this.index = choice.jump;
+        this.advance();
+      });
+      this.choicesEl.appendChild(btn);
+    });
+  }
+
+  saveGamePvt(slot) {
+    const data = { index: this.index, scene: this.currentScene, log: this.logData, timestamp: new Date().toLocaleString('zh-CN') };
+    try { localStorage.setItem('vn_save_' + slot, JSON.stringify(data)); } catch(e) {}
+  }
+
+  loadGamePvt(slot) {
+    try { const raw = localStorage.getItem('vn_save_' + slot); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
+  }
+
+  saveGame(slot) { this.saveGamePvt(slot); }
+  loadGame(slot) { return this.loadGamePvt(slot); }
+
+  autoSave() { this.saveGamePvt('auto'); this.showToast('已快速存档'); }
+
+  showToast(msg) {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:var(--gold); padding:8px 20px; border-radius:20px; font-size:13px; z-index:50; pointer-events:none; transition:opacity .5s;';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; }, 1500);
+    setTimeout(() => toast.remove(), 2000);
+  }
+
+  toggleMenu() {
+    const menu = document.getElementById('save-menu');
+    if (menu.classList.contains('show')) { menu.classList.remove('show'); }
+    else { this.renderSaveSlots(); menu.classList.add('show'); document.getElementById('log-overlay').classList.remove('show'); }
+  }
+
+  toggleLog() {
+    const log = document.getElementById('log-overlay');
+    if (log.classList.contains('show')) { log.classList.remove('show'); }
+    else { this.renderLog(); log.classList.add('show'); document.getElementById('save-menu').classList.remove('show'); }
+  }
+
+  renderSaveSlots() {
+    const container = document.getElementById('save-slots');
+    let html = '';
+    for (let i = 1; i <= 4; i++) {
+      const data = this.loadGamePvt('slot' + i);
+      html += `<div class="save-slot"><div><div>存档 ${i}</div><div class="slot-info">${data ? data.timestamp : '空'}</div></div><div class="slot-actions"><button class="slot-btn" onclick="event.stopPropagation();game.saveGame('slot${i}');game.renderSaveSlots();game.showToast('已存档到位置 ${i}')">存</button>${data ? `<button class="slot-btn" onclick="event.stopPropagation();var d=game.loadGame('slot${i}');game.index=d.index;game.setScenePvt(d.scene);game.logData=d.log;game.toggleMenu();game.advance();game.showToast('已读档')">读</button>` : ''}</div></div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  renderLog() {
+    const container = document.getElementById('log-content');
+    let html = '';
+    this.logData.forEach(entry => { html += `<div class="log-entry"><span class="log-speaker">${entry.speaker}</span>${entry.text}</div>`; });
+    container.innerHTML = html || '<div style="color:var(--text-dim);text-align:center;padding:40px">暂无对话记录</div>';
+  }
+
+  showTitle() {
+    this.saveGamePvt('auto');
+    this.dialogText.innerHTML = '<span style="color:var(--gold);text-align:center;display:block;padding:20px">— 第一章 完 —<br><span style="font-size:12px;color:var(--text-dim)">感谢游玩 · 第二章「冰原的图书馆」敬请期待</span></span>';
+    this.dialogText.style.fontStyle = 'normal';
+    this.dialogText.style.color = 'var(--gold)';
+    this.tapHint.style.display = 'none';
+    this.choicesEl.innerHTML = '';
+    document.getElementById('speaker-tag').style.opacity = '0';
+    this.isTyping = false;
+    this.index = this.script.length;
+  }
+}
+
+// ============================================================
+// SCRIPT
+// ============================================================
+const SCRIPT = [
+  { cmd:'scene', bg:'village', wait:500 },
+  { cmd:'moon', show:true, wait:300 },
+  { speaker:'', narration:true, text:'夜已深了。\n边陲小村艾尔温德沉睡在月光之下，只有几盏油灯还在窗后微微摇曳。' },
+  { speaker:'', narration:true, text:'村外的山坡上，一个少年仰望着星空，眼中倒映着流转的星辉。' },
+  { cmd:'char', id:'kaine', pos:'center', wait:600 },
+  { speaker:'凯恩', text:'奶奶说，每一颗星星都是一段被遗忘的故事。\n不知道我的故事……会是什么颜色的呢？' },
+  { speaker:'', narration:true, text:'凯恩·阿斯特拉——村里人叫他"星痴"。十六岁了，仍然每晚跑到山坡上看星星，做着不属于这个村子的梦。' },
+  { speaker:'凯恩', text:'总有一天，我要走出这片山谷，亲眼看看书里写的那些地方——\n浮空城、永夜森林、还有……星痕遗迹。' },
+  { cmd:'bgm', bg:'tense', wait:300 },
+  { speaker:'', narration:true, text:'话音未落，夜空中突然亮起一道轨迹。\n不是流星——那颗星星没有消失，反而越来越亮，越来越近……' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { cmd:'effect', effect:'dark', wait:200 },
+  { cmd:'char', id:'kaine', pos:'center', show:false, wait:200 },
+  { speaker:'凯恩', text:'什么——？！' },
+  { speaker:'', narration:true, text:'光芒散去后，山坡上的草叶被烧出一个完美的圆环。\n圆心处，静静地躺着一本……书。' },
+  { speaker:'', narration:true, text:'一本他从未见过的书。封面是深蓝色的皮革，上面镶嵌着银色的星纹。\n那些星纹……在发光。' },
+  { speaker:'凯恩', text:'这是……书？从天上掉下来的……书？' },
+  { speaker:'', narration:true, text:'他伸出手，指尖触碰到封面的瞬间——\n一道记忆涌入了他的脑海。' },
+  { speaker:'？？？', text:'「星痕之书已苏醒。契约者，你被选中了。」' },
+  { cmd:'effect', effect:'flash', wait:200 },
+  { cmd:'char', id:'lyra', pos:'left', wait:500 },
+  { speaker:'凯恩', text:'你是……谁？从哪里来的？' },
+  { speaker:'？？？', text:'我是这本书的守护灵。你可以叫我……「莱拉」。\n至于我从哪里来——说来话长。' },
+  { speaker:'莱拉', text:'简单来说：你的世界正面临一场危机，而这本书选中了你作为它的契约者。' },
+  { speaker:'凯恩', text:'危机？什么危机？我只是一个普通的……' },
+  { speaker:'莱拉', text:'你当然不是"普通的"。星痕之书不会选中普通人。\n走吧，先带你去看点东西。' },
+  { cmd:'scene', bg:'forest', wait:1000 },
+  { cmd:'moon', show:false, wait:300 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'凯恩', text:'这里是……永夜森林？奶奶说绝对不能进来的地方。' },
+  { speaker:'莱拉', text:'"绝对不能进来"——人类总是这样说自己不理解的东西。\n放松，有我在，这片森林伤不了你。' },
+  { speaker:'', narration:true, text:'森林深处，幽绿色的光点在空气中漂浮。\n一棵巨大的古树耸立在空地中央，树根间嵌着一块古老的石碑。' },
+  { speaker:'莱拉', text:'看到了吗？那就是第一处"星痕节点"。\n星痕是世界的记忆碎片——记录着这片大陆上发生过的一切。' },
+  { speaker:'凯恩', text:'世界的……记忆？' },
+  { speaker:'莱拉', text:'没错。而你的任务，就是用这本书收集散落在各地的星痕，\n拼凑出真相，阻止即将到来的灾难。' },
+  { speaker:'凯恩', text:'……我还是不太明白。但如果这真的能帮到什么人——' },
+  { choices:[
+    { text:'「好，我跟你走。」', jump:54 },
+    { text:'「等一下，我需要了解更多。」', jump:38 },
+    { text:'「……我能拒绝吗？」', jump:46 }
+  ], prompt:'凯恩深吸了一口气——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'等一下，我需要了解更多。\n你说"灾难"——那到底是什么？' },
+  { speaker:'莱拉', text:'……聪明的问题。\n三百年前，一位古代魔法师试图用禁忌之术改写世界的规则。' },
+  { speaker:'莱拉', text:'他失败了——但留下的"裂隙"至今仍在缓慢扩张。\n如果任由它发展，整个大陆都会被吞噬。' },
+  { speaker:'莱拉', text:'星痕之书是唯一能够定位并封印这些裂隙的钥匙。\n而你是这一代唯一能够使用它的人。' },
+  { speaker:'凯恩', text:'……我明白了。那就没有选择余地了。' },
+  { speaker:'凯恩', text:'好，我跟你走。' },
+  { cmd:'jump', target:57, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'等等——我能拒绝吗？我只是一个种田的，不是什么英雄。' },
+  { speaker:'莱拉', text:'……可以。星痕之书从不强迫任何人。\n但你确定吗？你多年仰望星空，等的难道不就是这样一个机会？' },
+  { speaker:'凯恩', text:'……' },
+  { speaker:'', narration:true, text:'凯恩沉默了很久。他想起奶奶讲过的故事，想起每一个在山坡上看星星的夜晚，\n想起自己无数次想像过走出山谷的场景。' },
+  { speaker:'凯恩', text:'……你说得对。我一直都在等。\n可能从出生那天就在等了。' },
+  { speaker:'凯恩', text:'好，我跟你走。' },
+  { cmd:'jump', target:57, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'好，我跟你走。\n反正留在这个村子里，我可能一辈子都在想"如果当初"——那样的日子更可怕。' },
+  { speaker:'莱拉', text:'……有意思。你的灵魂比看起来要有趣得多。\n我喜欢这个答案。' },
+  { cmd:'label', wait:0 },
+  { speaker:'莱拉', text:'很好。不过在出发之前，你需要去见一个人。\n他住在森林另一边的废墟里——这世上唯一一个还能解读星痕的人。' },
+  { cmd:'scene', bg:'ruins', wait:1000 },
+  { cmd:'char', id:'lyra', pos:'left', wait:0 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { speaker:'凯恩', text:'这里是……古代遗迹？村子外面居然有这种东西。' },
+  { speaker:'', narration:true, text:'残破的石柱在月光下泛着微弱的荧光。\n废墟深处，一位白发老者正俯身在一块巨大的石碑前，手持法杖，喃喃自语。' },
+  { cmd:'char', id:'elder', pos:'center', wait:500 },
+  { speaker:'莱拉', text:'这位是阿兹拉姆长老——星痕守护者的最后传人。' },
+  { speaker:'阿兹拉姆', text:'……哦？\n新的契约者吗。' },
+  { speaker:'阿兹拉姆', text:'（缓缓转身，目光锐利）\n小伙子，把手伸出来。' },
+  { speaker:'凯恩', text:'呃……好的。' },
+  { speaker:'', narration:true, text:'老人握住凯恩的手腕，闭上了眼睛。\n片刻后，他的眉毛微微扬起。' },
+  { speaker:'阿兹拉姆', text:'……有意思。非常有意思。\n你的星痕共鸣度，是老朽三百年来见过最高的。' },
+  { speaker:'凯恩', text:'三百年？！您活了三百——' },
+  { speaker:'阿兹拉姆', text:'这不重要。重要的是——\n你准备好踏上这条路了吗？' },
+  { choices:[
+    { text:'「我准备好了。」（坚定）', jump:74 },
+    { text:'「说实话……我很害怕。」（坦诚）', jump:78 },
+    { text:'「为什么是我？」（追问）', jump:82 }
+  ], prompt:'老人注视着凯恩的眼睛——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我准备好了。\n不管前面等着我的是什么——我不会退缩。' },
+  { speaker:'阿兹拉姆', text:'好。勇气可嘉。但记住——勇气不等于鲁莽。\n在接下来的旅途中，你的每一个选择都会改变命运的轨迹。' },
+  { cmd:'jump', target:83, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'说实话……我很害怕。\n就在今天早上，我还在担心今年的收成。现在突然告诉我，我要去拯救世界……' },
+  { speaker:'阿兹拉姆', text:'（微微一笑）\n害怕才是正常的。只有傻子才会在面对未知时毫无畏惧。' },
+  { speaker:'阿兹拉姆', text:'真正的勇气，不是不害怕——\n而是即使害怕，依然选择走下去。你觉得呢？' },
+  { speaker:'凯恩', text:'……您说得对。\n我害怕——但我更害怕什么都不做，然后后悔一辈子。' },
+  { cmd:'label', wait:0 },
+  { speaker:'阿兹拉姆', text:'很好。那么——\n让老朽给你第一份"星痕"吧。' },
+  { speaker:'', narration:true, text:'老人将法杖轻轻点在凯恩手中的星痕之书上。\n书页无风自动，发出柔和的蓝光。一页崭新的内容在书页间显现——' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { speaker:'阿兹拉姆', text:'这是三百年前那场灾难的记载。\n也是你的第一个线索。去吧，去浮空城艾瑟琳——那里有你需要的下一块碎片。' },
+  { speaker:'莱拉', text:'浮空城……很远呢。看来得先找个交通工具。' },
+  { speaker:'凯恩', text:'（低头看着手中发光的书）\n浮空城、星痕、三百年前的灾难……这简直像做梦一样。' },
+  { speaker:'凯恩', text:'但这不是梦。\n这是……我的星痕之书。我的故事。' },
+  { speaker:'', narration:true, text:'月光穿过废墟的裂隙，洒在少年手中的书上。\n星光与书页中的光纹交相辉映——仿佛整个世界都在注视着这一刻。' },
+  { speaker:'', narration:true, text:'序章 · 星落之夜 —— 完 ——' },
+  { speaker:'', narration:true, text:'—— 第一章 · 浮空城的影子 ——' },
+  { speaker:'', narration:true, text:'星痕之书的光芒渐渐暗下去之后，阿兹拉姆长老拄着法杖，沉默了一会儿。' },
+  { speaker:'阿兹拉姆', text:'天亮再走。你需要回去一趟——不是拿行李。' },
+  { speaker:'', narration:true, text:'凯恩明白他的意思。' },
+  { speaker:'', narration:true, text:'夜色最深的时候，凯恩悄悄推开家门。\n灶台上还温着一碗麦粥，桌上摊着奶奶的织布——她总是在半夜睡不着的时候起来织几行，说星星陪着她。' },
+  { speaker:'', narration:true, text:'奶奶坐在椅子上，没有睡。她面前的油灯快烧尽了，但她没有添油，只是看着跳动的火苗。' },
+  { cmd:'char', id:'kaine', pos:'center', wait:400 },
+  { speaker:'奶奶', text:'回来了？外面冷，把门带上。' },
+  { speaker:'', narration:true, text:'她甚至没有回头。仿佛早就知道他会在这个时间回来。' },
+  { speaker:'凯恩', text:'奶奶……我要出一趟远门。' },
+  { speaker:'奶奶', text:'多远？' },
+  { speaker:'', narration:true, text:'凯恩张了张嘴。他可以说去邻镇，去集市，去任何地方——但他从小到大，从来没对奶奶撒过谎。' },
+  { speaker:'凯恩', text:'……可能很远。可能……要很久。' },
+  { speaker:'', narration:true, text:'奶奶终于转过头。她的眼睛已经很浑浊了，但她看着凯恩的眼神，像在看一颗明亮的星星。' },
+  { speaker:'奶奶', text:'是山坡上掉下来的那道光，对不对？' },
+  { speaker:'', narration:true, text:'凯恩愣住了。' },
+  { speaker:'奶奶', text:'你以为你每天晚上溜出去，我不知道？你爷爷当年也这样。后来他走了——去了北方，说要去看看这个世界到底有多大。我没拦他。他也从来没后悔。' },
+  { speaker:'', narration:true, text:'她从织布机旁边的抽屉里拿出一件东西——一条深蓝色的围巾，上面用银线绣着星纹。' },
+  { speaker:'奶奶', text:'你爷爷留下的。他说，万一以后有个小子也像他一样，就把这个给他。' },
+  { speaker:'', narration:true, text:'她把围巾放进凯恩手里。布料是旧的，但洗得很干净，叠得很整齐。银线在油灯的光里微微发亮。' },
+  { speaker:'凯恩', text:'……奶奶。' },
+  { speaker:'奶奶', text:'走吧。天快亮了。你爷爷说过一句话——\n"星辰不会被黑夜困住。它们会自己找到出路。"' },
+  { speaker:'', narration:true, text:'她没有哭。也没有再说别的话。只是又开始织布了——梭子在织机上来回作响，每一次都像在说——去吧。' },
+  { speaker:'', narration:true, text:'凯恩把围巾围在脖子上，推开门。晨光刚从山脊上透出来。\n他没有回头。但他知道，奶奶也没有。' },
+  { cmd:'char', id:'kaine', pos:'center', show:false, wait:300 },
+  { speaker:'', narration:true, text:'走到村口时，莱拉的身影在晨光里浮现。' },
+  { cmd:'char', id:'lyra', pos:'left', wait:400 },
+  { speaker:'莱拉', text:'（看着他脖子上的围巾）……很好的围巾。' },
+  { speaker:'凯恩', text:'我爷爷的。' },
+  { speaker:'莱拉', text:'我知道。星纹的图案——这是星痕守护者之间用来识别彼此的信物。\n你的爷爷，可能和这件事有比你想象中更深的关联。' },
+  { speaker:'', narration:true, text:'凯恩低下头，摸了摸围巾上的银线。' },
+  { speaker:'凯恩', text:'我还有很多问题想问她。' },
+  { speaker:'莱拉', text:'（轻声）等你回来的时候问。' },
+  { speaker:'', narration:true, text:'她顿了顿。' },
+  { speaker:'莱拉', text:'契约者从来不问能不能回来。他们只问——值不值得去。' },
+  { speaker:'', narration:true, text:'晨风很冷，但围巾上有阳光和旧布料混在一起的味道——那是家的味道。' },
+  { speaker:'凯恩', text:'走吧。去十字风港。' },
+  { cmd:'scene', bg:'port', wait:1200 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'两天后，他们抵达了十字风港——一座建在悬崖边的贸易小镇。' },
+  { speaker:'', narration:true, text:'木质栈桥悬在峭壁上，缆车在峡谷间穿梭，港口停泊着几艘小型飞艇。\n空气里混着机油、盐风和烤面包的味道。' },
+  { speaker:'凯恩', text:'（眼睛发亮）这么多飞艇！我们是要坐这个去浮空城吗？' },
+  { speaker:'莱拉', text:'前提是能找到愿意载我们的船。去浮空城的航线三个月前就停了——\n据说上面的情况不太对。' },
+  { speaker:'', narration:true, text:'凯恩在港口问了一圈。每一个船长听到"浮空城"三个字就摇头。\n直到他走进港口最边缘的一间破旧机库——' },
+  { cmd:'char', id:'finn', pos:'center', wait:500 },
+  { cmd:'char', id:'kaine', pos:'right', wait:0 },
+  { speaker:'', narration:true, text:'一个短发的年轻女人正趴在一艘飞艇的引擎盖上，手里攥着扳手，嘴里叼着半根铁钉。' },
+  { speaker:'菲恩', text:'（头也不抬）不载客。不送货。不跑腿。不管你想说什么，答案是……"不"。' },
+  { speaker:'凯恩', text:'我还没开口呢。' },
+  { speaker:'菲恩', text:'（终于抬起头，琥珀色的眼睛打量了他一眼）行吧。说。' },
+  { speaker:'凯恩', text:'我们要去浮空城艾瑟琳。' },
+  { speaker:'', narration:true, text:'菲恩愣了一下，然后把铁钉从嘴里拿下来，笑了——不是友善的笑，是"你疯了吧"的笑。' },
+  { speaker:'菲恩', text:'你知道浮空城现在什么样吗？三个月前最后一艘回来的货船，\n船员说城里一半的建筑都在往下掉。水晶塔忽明忽暗，街道上全是黑色的……东西。' },
+  { speaker:'菲恩', text:'他们说不清楚那是什么。只说——别去。' },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'莱拉', text:'（显形，语气平静）那些"黑色的东西"，是不是像裂缝一样，在空间里蔓延？' },
+  { speaker:'', narration:true, text:'菲恩瞪大了眼睛。不是因为害怕——而是因为莱拉说中了。' },
+  { speaker:'菲恩', text:'……你怎么知道？' },
+  { speaker:'莱拉', text:'因为我们就是来解决这个问题的。而我需要你帮忙——你的飞艇，还有你知道的一切。' },
+  { speaker:'', narration:true, text:'菲恩靠在飞艇上，抱着胳膊想了一会儿。' },
+  { speaker:'菲恩', text:'我有个条件。浮空城里有我师父——他是个老机械师，三个月前留在上面检修水晶塔的供能系统。从那以后就断了联系。' },
+  { speaker:'菲恩', text:'我帮你们上去。你们帮我找到他。' },
+  { choices:[
+    { text:'「一言为定。」（爽快答应）', jump:157 },
+    { text:'「我不能保证能找到他，但我会尽力。」（谨慎）', jump:161 },
+    { text:'「上面的情况我们都不清楚……你自己不上去吗？」（反问）', jump:166 }
+  ], prompt:'凯恩看着菲恩——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'一言为定。你带我们上去，我们帮你找师父。' },
+  { speaker:'菲恩', text:'（嘴角微微一翘）痛快。我开始有点喜欢你了，乡下小子。' },
+  { cmd:'jump', target:172, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我不能保证一定找到他。但我答应你——我会尽力。' },
+  { speaker:'', narration:true, text:'菲恩看了他几秒。那种打量的眼神——不像在看一个客户，像在掂量一个人的分量。' },
+  { speaker:'菲恩', text:'行。至少你说的是实话。\n比那些满口答应然后跑路的人强。' },
+  { cmd:'jump', target:172, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'上面的情况我们都不清楚……你自己不上去吗？' },
+  { speaker:'', narration:true, text:'菲恩愣了一下。然后她笑了——这次是真的笑。' },
+  { speaker:'菲恩', text:'你以为我想坐在下面干等？当然是一起去。\n逆风号是我的船，我不放心交给别人开。' },
+  { speaker:'菲恩', text:'（转头看着飞艇）何况……师父在上面。我至少得亲眼看看。' },
+  { cmd:'jump', target:172, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'交易达成了。菲恩把那艘破旧但结实的飞艇——「逆风号」——从机库里拖了出来。' },
+  { speaker:'菲恩', text:'逆风号看着破，引擎是我亲手改的。\n只要不遇到龙卷雷暴和噬云兽，应该能把你们活着送到。' },
+  { speaker:'凯恩', text:'……"应该"？' },
+  { speaker:'菲恩', text:'（咧嘴一笑）冒险嘛，对吧。' },
+  { cmd:'scene', bg:'airship', wait:1200 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', show:false, wait:0 },
+  { speaker:'', narration:true, text:'逆风号升空。凯恩第一次坐飞艇，死死抓着船舷栏杆，指节发白。\n菲恩在驾驶座上笑得前仰后合。' },
+  { speaker:'', narration:true, text:'云层之上是另一个世界。金色的黄昏光线穿透云隙，远处的浮空岛屿像漂在海上的冰山——只是它们漂在天上。' },
+  { speaker:'莱拉', text:'（站在船头，长发被风吹起）三百年没飞过了。这里的云还是老样子。' },
+  { speaker:'凯恩', text:'三百年……莱拉，你到底活了多久？' },
+  { speaker:'莱拉', text:'（转过头，表情罕见地柔软）久到我已经不记得上一次有人问我这个问题是什么时候了。' },
+  { speaker:'', narration:true, text:'凯恩想问更多——关于她，关于上一个契约者，关于三百年前到底发生了什么。\n但莱拉已经转回去看着云海，那个话题显然结束了。' },
+  { speaker:'', narration:true, text:'突然，船身猛地一震——' },
+  { speaker:'菲恩', text:'（喊道）喂！仪表盘在跳。右边有一大片云不太对。' },
+  { speaker:'', narration:true, text:'不是云。是一团漆黑的、扭曲的雾——正在朝他们移动。' },
+  { speaker:'莱拉', text:'（声音骤然变冷）裂隙的残留物。它们会吞噬魔力，也会吞噬生命。菲恩——能绕开吗？' },
+  { speaker:'菲恩', text:'来不及了——抓紧！' },
+  { cmd:'effect', effect:'dark', wait:300 },
+  { speaker:'', narration:true, text:'逆风号猛地向右急转，凯恩差点被甩出去。那团黑雾擦着飞艇左翼掠过——\n距离近到他能听见一种低沉的嗡鸣声，像是某种巨大的东西在呼吸。' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { speaker:'', narration:true, text:'黑雾擦过的船体上，木材表面瞬间变黑、龟裂。\n菲恩骂了一句，猛推操纵杆——逆风号冲出云层。' },
+  { speaker:'', narration:true, text:'然后，浮空城出现在前方。' },
+  { cmd:'scene', bg:'floatcity', wait:1500 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'浮空城艾瑟琳——曾经是这片大陆最耀眼的城市。\n白色大理石街道悬浮在云海之上，水晶塔日夜不息地向整片大陆输送魔力。' },
+  { speaker:'', narration:true, text:'现在，它像一座沉睡的巨兽。' },
+  { speaker:'', narration:true, text:'飞艇降落在空无一人的港口。栈桥上覆盖着厚厚的灰尘和干枯的藤蔓。\n远处的水晶塔闪烁着不规律的蓝光，像一个垂死的人勉强睁着眼睛。' },
+  { speaker:'菲恩', text:'（低声）比我听说的还糟。师父到底在哪……' },
+  { speaker:'莱拉', text:'星痕节点的信号很弱，但方向是确定的——在水晶塔那边。我们先去那里。' },
+  { speaker:'凯恩', text:'等等。你们听——' },
+  { speaker:'', narration:true, text:'三个人的脚步都停住了。\n街道尽头，有什么东西在移动。不是人——是一团模糊的黑色轮廓，像人形，但边缘不断扭曲、逸散。' },
+  { speaker:'', narration:true, text:'它没有眼睛。但凯恩能感觉到——它在"看"他们。' },
+  { speaker:'莱拉', text:'裂隙的残影。不要碰它，不要让它碰到你。\n它碰到什么，什么就会被"抹消"——从这个世界的记忆中彻底消失。' },
+  { choices:[
+    { text:'「绕开它。找别的路去水晶塔。」（安全路线）', jump:210 },
+    { text:'「冲过去。莱拉，你的力量能对付它吗？」（消耗莱拉）', jump:217 },
+    { text:'「分散它。菲恩，你从左边巷子绕过去找师父。」（分散风险）', jump:226 }
+  ], prompt:'三人对视一眼——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'绕开它。找别的路去水晶塔。' },
+  { speaker:'', narration:true, text:'三人贴着墙壁，从右边的窄巷绕了过去。残影在街道中央徘徊了一会儿，缓缓飘向另一个方向。' },
+  { speaker:'', narration:true, text:'路上，他们经过了一间门口挂着齿轮招牌的小工作室——菲恩停了一下。' },
+  { speaker:'菲恩', text:'这是我师父的工作室。他以前在这里修水晶供能器……（推开门，里面空无一人，但桌上摊着还在发光的机械图纸）' },
+  { speaker:'菲恩', text:'（拿起图纸，快速扫了一眼）他在水晶塔下面画了标记。还在那里。' },
+  { cmd:'jump', target:234, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'莱拉，你的力量能对付它吗？' },
+  { speaker:'莱拉', text:'（微微点头）站到我身后。' },
+  { speaker:'', narration:true, text:'莱拉伸出手，掌心亮起一道星光。残影被光芒照到后剧烈扭曲，发出一声无声的嘶鸣——然后碎了。' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'', narration:true, text:'但莱拉的身形也随之闪烁了一下，比刚才透明了几分。' },
+  { speaker:'凯恩', text:'莱拉——你还好吗？' },
+  { speaker:'莱拉', text:'（声音轻了一些）没事。只是需要点时间恢复。走吧，水晶塔不远了。' },
+  { cmd:'jump', target:234, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我们引开它。菲恩，你从左边巷子绕过去——先去找你师父的线索。' },
+  { speaker:'菲恩', text:'（犹豫了一下）……你们小心。港口那边汇合。' },
+  { speaker:'', narration:true, text:'菲恩悄无声息地消失在巷子里。凯恩和莱拉故意踢翻了一个铁桶——残影猛地转向，朝他们飘来。' },
+  { speaker:'', narration:true, text:'两人在街道间穿梭引开残影，直到它最终消散在一面断墙后面。' },
+  { speaker:'', narration:true, text:'赶到水晶塔时，菲恩已经到了——她手里攥着一张从师父工作室找到的图纸，表情复杂。' },
+  { speaker:'菲恩', text:'我师父在水晶塔的核心区。他在用反制力场对抗那些黑雾……已经三个月了。一个人。' },
+  { cmd:'jump', target:234, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'水晶塔脚下的巨大石门半掩着。门内是一个圆形大厅，墙壁上刻满了和星痕遗迹石碑相同的古代文字。' },
+  { speaker:'', narration:true, text:'大厅正中央，站着一个人。不是残影——是一个活人。' },
+  { cmd:'char', id:'finn', pos:'right', wait:300 },
+  { speaker:'', narration:true, text:'中年男人，穿着破旧的工装，手里攥着一把扳手——但这把扳手正抵着一个复杂的机械装置，装置连接着水晶塔的核心。' },
+  { speaker:'菲恩', text:'师父！' },
+  { speaker:'多兰', text:'别过来！' },
+  { speaker:'', narration:true, text:'多兰师傅转过身。他的眼睛里布满了黑色的细纹——像血管，但不是红色的，是漆黑的。' },
+  { speaker:'多兰', text:'小菲恩……你应该留在下面的。这地方完了。\n三个月前裂隙就开始吞噬水晶塔的核心，我只能用反制力场暂时稳住它……' },
+  { speaker:'多兰', text:'但我自己也……被它碰了一下。' },
+  { speaker:'莱拉', text:'（冷静地）裂隙触碰过的生命体会逐渐被"记忆消除"。\n再过几天，你的师父就不再记得自己是谁——也不再记得你。' },
+  { speaker:'菲恩', text:'……一定有办法的。一定有的！' },
+  { speaker:'凯恩', text:'（打开星痕之书）阿兹拉姆长老说过，星痕可以定位并封印裂隙。\n莱拉——这里的星痕节点在哪？' },
+  { speaker:'', narration:true, text:'莱拉指向大厅尽头——水晶塔的正下方。一块巨大的石碑嵌在地面中，上面的符文忽明忽暗。' },
+  { choices:[
+    { text:'「菲恩，你去稳住师父。莱拉，帮我解读石碑。」（稳妥）', jump:249 },
+    { text:'「先封印裂隙源。菲恩，帮师父撑住。」（冒险救师父）', jump:258 },
+    { text:'「一起激活石碑。多兰师傅，请再坚持一会儿。」（全力加速）', jump:267 }
+  ], prompt:'凯恩快速扫视大厅——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'菲恩，你去稳住你师父。莱拉，帮我解读石碑。' },
+  { speaker:'菲恩', text:'（冲过去扶住多兰）师父，看着我。别睡着。' },
+  { speaker:'多兰', text:'……小菲恩，你的扳手还是用左手拿的。我跟你说过多少次——' },
+  { speaker:'菲恩', text:'（声音发颤）等你好了再骂我。现在闭嘴，看着我。' },
+  { speaker:'', narration:true, text:'凯恩将星痕之书按在石碑上。莱拉的低语在他耳边响起——古老的咒文，一段一段，像在拼合碎裂的记忆。' },
+  { speaker:'', narration:true, text:'石碑上的符文次第亮起。蓝色的光芒沿着地面的纹路蔓延，最终冲入水晶塔的核心。' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { cmd:'jump', target:276, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'先封印裂隙源。菲恩——你能帮师父撑多久？' },
+  { speaker:'菲恩', text:'（咬牙）不知道。但我会撑到最后一秒。' },
+  { speaker:'', narration:true, text:'莱拉飘到石碑正上方，双臂展开——整个大厅的符文同时发光。裂隙的黑雾像被一双无形的手攥住，猛地收缩。' },
+  { speaker:'', narration:true, text:'多兰师傅闷哼一声，眼中的黑纹急速褪去——但水晶塔发出了一声沉闷的碎裂声。一块天花板掉了下来。' },
+  { speaker:'莱拉', text:'快！封印还不稳定——把书按上去！' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'', narration:true, text:'凯恩冲上去将书按在石碑中央。蓝光吞没了整个大厅。多兰师傅眼中的黑纹退了大半——比预想的恢复得好。' },
+  { cmd:'jump', target:276, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'一起激活石碑。多兰师傅——请再坚持一会儿。' },
+  { speaker:'多兰', text:'（艰难地笑了一下）三个月都撑了……不差这一会儿。' },
+  { speaker:'', narration:true, text:'三人同时行动——菲恩稳住反制力场装置，凯恩和莱拉合力激活石碑。' },
+  { speaker:'', narration:true, text:'三重力量汇聚在水晶塔核心。蓝光如潮水般涌出，裂隙的黑雾疯狂挣扎——然后像被抽走了骨架一样塌缩。' },
+  { cmd:'effect', effect:'flash', wait:500 },
+  { speaker:'菲恩', text:'……成了？' },
+  { speaker:'莱拉', text:'暂时。这一处的裂隙被压制了。但整个世界的裂隙不止这一处。' },
+  { cmd:'jump', target:276, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'水晶塔重新亮起了稳定的蓝光。裂隙被暂时压制住了——至少在这座城市范围内。' },
+  { speaker:'', narration:true, text:'多兰师傅眼中的黑纹退了一部分，但没有完全消失。莱拉说，要彻底治愈他，需要收集更多星痕——至少还要两个。' },
+  { speaker:'多兰', text:'（虚弱地）谢谢你们……我记不太清了，但我记得一件事——\n在水晶塔被裂隙侵蚀之前，它曾经短暂地连接到某个地方。' },
+  { speaker:'多兰', text:'一个……图书馆。不是艾瑟琳的图书馆，是更古老的。\n在……北方。冰原的尽头。' },
+  { speaker:'凯恩', text:'北方冰原？' },
+  { speaker:'莱拉', text:'（表情微变）……星痕大图书馆。那是第一批星痕守护者建造的。\n如果它能被定位到——' },
+  { speaker:'', narration:true, text:'突然，大厅的阴影里传来一个声音。低沉，缓慢，像石磨碾过沙砾。' },
+  { speaker:'？？？', text:'做得不错，契约者。比上一个走得更远。' },
+  { speaker:'', narration:true, text:'所有人同时转身。大厅入口的阴影中，站着一个高瘦的人影。\n深色长袍，兜帽遮住了大半张脸。只有一双眼睛在黑暗中隐隐发光——颜色和裂隙一模一样。' },
+  { speaker:'莱拉', text:'（声音里第一次出现了恐惧）……不可能。你早就被封印了——' },
+  { speaker:'？？？', text:'封印只是拖延。而你们——' },
+  { speaker:'', narration:true, text:'他伸出手，指向大厅中央。裂隙的黑雾突然暴增，疯狂地朝石碑涌去。' },
+  { cmd:'effect', effect:'dark', wait:200 },
+  { speaker:'？？？', text:'——在帮我铺路。' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'', narration:true, text:'黑雾吞没了半个大厅。' },
+  { cmd:'scene', bg:'port', wait:800 },
+  { cmd:'effect', effect:'none', wait:200 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'left', wait:300 },
+  { cmd:'char', id:'lyra', pos:'center', show:false, wait:0 },
+  { speaker:'', narration:true, text:'凯恩醒来时，发现自己躺在十字风港港口的地面上。天已经亮了。' },
+  { speaker:'', narration:true, text:'菲恩在旁边，扶着他的肩膀。多兰师傅靠在栈桥柱子上，昏迷不醒。\n莱拉的形体忽明忽暗——比以往任何时候都要微弱。' },
+  { speaker:'凯恩', text:'发生了什么……我们怎么回来的？' },
+  { speaker:'莱拉', text:'（声音像是从很远的地方传来）我把你们传送出来的。消耗了……太多力量。\n我需要休息一段时间。' },
+  { speaker:'凯恩', text:'那个人是谁？你认识他，对吗？' },
+  { speaker:'莱拉', text:'……他就是三百年前的那个魔法师。马洛维斯。创造了裂隙的人。\n我以为他已经被封印在时间的尽头——但他找到了回来的路。' },
+  { speaker:'凯恩', text:'他说的"上一个"契约者——' },
+  { speaker:'莱拉', text:'（打断他，声音第一次失控）别问了。凯恩。求你。别问了。' },
+  { speaker:'', narration:true, text:'莱拉的身形彻底消散，回到了星痕之书中。书封上的光芒暗了下去，像一个沉沉睡去的人。' },
+  { speaker:'', narration:true, text:'凯恩低头看着书，又抬头看了看旁边的菲恩。' },
+  { speaker:'菲恩', text:'（苦笑）所以……那个黑袍怪物说要"铺路"——意思是我们在帮他？' },
+  { speaker:'凯恩', text:'……不。他在害怕。如果他真的不在乎我们，他不会现身。' },
+  { speaker:'凯恩', text:'他是在警告我们——不要再走下去。' },
+  { speaker:'菲恩', text:'那你打算怎么办？' },
+  { choices:[
+    { text:'「继续走下去。去北方冰原，找星痕大图书馆。」', jump:313 },
+    { text:'「先弄清楚马洛维斯到底是什么。回遗迹问长老。」', jump:319 },
+    { text:'「莱拉需要恢复。先等她醒来。」', jump:325 }
+  ], prompt:'凯恩握紧了手中的星痕之书——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'继续走下去。去北方冰原，找星痕大图书馆。' },
+  { speaker:'菲恩', text:'（叹了口气，然后站起来拍了拍身上的灰）行吧。逆风号的引擎正好也该大修了。\n冰原的温度很低，得多带几个加热器。' },
+  { speaker:'凯恩', text:'……你不问为什么？' },
+  { speaker:'菲恩', text:'（回头看着他，嘴角一翘）因为我师父的眼睛还没好。\n而且说实话——我也有点想看看那个黑袍怪物被打脸的样子。' },
+  { cmd:'jump', target:331, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'先弄清楚马洛维斯到底是什么。我们回一趟遗迹，问长老。' },
+  { speaker:'菲恩', text:'你认识活了三百年的人？' },
+  { speaker:'凯恩', text:'嗯。而且说实话——他可能认识活得比三百年更久的人。' },
+  { speaker:'', narration:true, text:'他看着手中的星痕之书。书封上的光芒虽然暗了，但星纹的纹理还在——像脉搏一样，一下一下，微弱地跳动。' },
+  { cmd:'jump', target:331, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'莱拉需要恢复。先等她醒来。' },
+  { speaker:'', narration:true, text:'他把星痕之书放在膝盖上，手指轻轻按在封面上。星纹的纹理冰凉而安静。' },
+  { speaker:'', narration:true, text:'菲恩在他旁边坐下来。没有催他，也没有说话。她只是把工具箱拖到旁边，开始修飞艇被裂隙擦伤的那块木板。' },
+  { speaker:'凯恩', text:'（轻声，对着书）不管你以前经历了什么——这次不一样。我不会一个人走。' },
+  { cmd:'jump', target:343, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'十字风港的晨光洒在港口上。远处的云海中，浮空城艾瑟琳的水晶塔重新亮着稳定的蓝光。' },
+  { speaker:'', narration:true, text:'远方是北方的冰原。更远的地方——有一个魔法师，在黑暗中等待。' },
+  { speaker:'', narration:true, text:'而少年手中的书，是这一切的钥匙。' },
+  { speaker:'', narration:true, text:'第一章 · 浮空城的影子 —— 完 ——' },
+  { speaker:'', narration:true, text:'—— 第二章 · 冰原的图书馆 ——' },
+  { cmd:'scene', bg:'port', wait:800 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', wait:500 },
+  { speaker:'', narration:true, text:'三天后，十字风港。菲恩在逆风号的引擎舱里忙了整整两天，终于把被裂隙擦伤的船体修好了。' },
+  { speaker:'菲恩', text:'（拍了拍引擎盖）逆风号状态良好。加热器装了四个，冰原的低温应该没问题。' },
+  { speaker:'凯恩', text:'菲恩……你真的要一起去？冰原可比浮空城危险得多。' },
+  { speaker:'菲恩', text:'废话。逆风号是我的船，我不开谁开？何况——（她看了看手中师父留下的图纸）——我还有事要做。' },
+  { choices:[
+    { text:'「我想去跟奶奶告个别。」', jump:359 },
+    { text:'「直接出发吧。奶奶会理解的。」', jump:350 },
+    { text:'「……我去港口走走。」', jump:355 }
+  ], prompt:'出发前，凯恩犹豫了一下——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'等我一下。我想去跟奶奶告个别。' },
+  { speaker:'', narration:true, text:'凯恩跑回村口的小屋。奶奶正在院子里晒麦子，看到他回来，手里的动作顿了一下。' },
+  { speaker:'奶奶', text:'又要走了？' },
+  { speaker:'凯恩', text:'嗯。这次去的地方更远。' },
+  { speaker:'奶奶', text:'（把一袋晒好的麦子递给他）路上吃。别饿着。' },
+  { speaker:'', narration:true, text:'凯恩接过麦子，抱了抱奶奶。她很瘦，但肩膀很稳。' },
+  { speaker:'奶奶', text:'去吧。星星会给你指路的。' },
+  { cmd:'jump', target:378, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'……直接出发吧。奶奶会理解的。' },
+  { speaker:'', narration:true, text:'他摸了摸脖子上的围巾——爷爷留下的那条。银线在晨光里微微发亮。' },
+  { speaker:'凯恩', text:'（轻声）等我回来。' },
+  { cmd:'jump', target:378, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩一个人走到港口边缘。悬崖下面是翻涌的云海，远处的天际线泛着冷光。' },
+  { speaker:'', narration:true, text:'他想起第一次来到十字风港时的情景——那时候他还是一个什么都不懂的乡下少年。' },
+  { speaker:'凯恩', text:'（自言自语）才过了多久……感觉像过了一辈子。' },
+  { cmd:'jump', target:378, wait:100 },
+  { cmd:'label', wait:0 },
+  { cmd:'scene', bg:'airship', wait:1000 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'逆风号再次升空。这一次，航向是正北——朝着冰原的方向。' },
+  { speaker:'', narration:true, text:'云层越来越厚，温度急剧下降。菲恩打开了全部四个加热器，船舱里依然冷得能看见呼出的白气。' },
+  { speaker:'菲恩', text:'暴风雪要来了。仪表盘全在跳——这可不是普通的雪。' },
+  { speaker:'', narration:true, text:'窗外，天空变成了铅灰色。雪花不是飘落的——是横着飞过来的，像无数把细小的刀片。' },
+  { speaker:'莱拉', text:'（星痕之书在凯恩怀中发出微弱的蓝光）书在引路。跟着光芒的方向走。' },
+  { speaker:'', narration:true, text:'蓝光穿透了暴风雪，在船头投射出一条隐约的光路。菲恩咬着牙，操纵飞艇沿着光路前进。' },
+  { speaker:'菲恩', text:'（喊道）能见度几乎为零！如果光路断了——' },
+  { speaker:'莱拉', text:'不会断。星痕之书从不迷路。' },
+  { speaker:'', narration:true, text:'暴风雪中飞行了不知多久。凯恩的手指已经冻得发麻，围巾上结了一层薄冰。' },
+  { speaker:'', narration:true, text:'然后——风停了。' },
+  { cmd:'scene', bg:'ice', wait:1500 },
+  { cmd:'bgm', bg:'ice', wait:500 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'暴风雪突然消失了。飞艇穿过最后一层云，眼前豁然开朗。' },
+  { speaker:'', narration:true, text:'一片无边无际的冰原在阳光下闪烁。白得刺眼，静得像整个世界都停止了呼吸。' },
+  { speaker:'', narration:true, text:'而在冰原的正中央——一座巨大的黑色建筑矗立在那里。' },
+  { speaker:'', narration:true, text:'黑曜石的外墙反射着冷光，高耸的尖塔刺入天空。整座建筑像是从冰层下面长出来的——或者说，像是冰原围着它生长。' },
+  { speaker:'菲恩', text:'（低声）那就是……星痕大图书馆？' },
+  { speaker:'莱拉', text:'三千年前，第一批星痕守护者在这里建造了它。它是世界上所有记忆的档案馆。' },
+  { speaker:'', narration:true, text:'飞艇降落在图书馆前的冰面上。三人走下船，寒风刺骨。' },
+  { speaker:'', narration:true, text:'图书馆的大门紧闭。门上刻着一行古老的文字，在寒风中微微发光。' },
+  { speaker:'莱拉', text:'（念出门上的文字）"欲入此门者，须以记忆为钥。"' },
+  { speaker:'凯恩', text:'记忆？什么意思？' },
+  { speaker:'莱拉', text:'进入图书馆需要献出一段记忆。不是随便什么记忆——必须是你珍视的。它会成为打开大门的钥匙。' },
+  { choices:[
+    { text:'「献出……爷爷的笑容的记忆。」', jump:412 },
+    { text:'「我不能献出那个……换一个吧。」', jump:417 },
+    { text:'「有没有不用献出记忆的办法？」', jump:422 }
+  ], prompt:'凯恩闭上眼睛。脑海中浮现了爷爷的笑脸——' },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩选择了爷爷的笑容的记忆。那是小时候，爷爷抱着他坐在村口的大石头上，指着天上的星星说故事时的笑容。温暖、慈祥，像是永远不会消失。' },
+  { speaker:'凯恩', text:'（睁开眼，声音颤抖）爷爷……对不起。' },
+  { speaker:'', narration:true, text:'大门缓缓打开。' },
+  { cmd:'jump', target:428, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩摇了摇头，选了另一段记忆——奶奶教他织布的午后。温暖的阳光、奶奶手把手的教导、织机的咔嗒声，一点一点从脑海中消散。' },
+  { speaker:'凯恩', text:'（眼眶泛红）奶奶……对不起。' },
+  { speaker:'', narration:true, text:'大门缓缓打开。' },
+  { cmd:'jump', target:428, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'莱拉', text:'让我来吧。这段记忆由我替你承担。' },
+  { speaker:'', narration:true, text:'莱拉的身形闪烁了一下，一段关于她三百年前的记忆——和马洛维斯初遇的画面——像雾气一样散去。' },
+  { speaker:'莱拉', text:'（轻声）……没关系。那已经是很久以前的事了。' },
+  { speaker:'', narration:true, text:'大门缓缓打开。' },
+  { cmd:'jump', target:428, wait:100 },
+  { cmd:'label', wait:0 },
+  { cmd:'scene', bg:'library', wait:1500 },
+  { cmd:'bgm', bg:'library', wait:500 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'图书馆内部比外面看起来大得多。高耸的书架直插穹顶，无数书卷散发着微弱的光芒。空气中飘浮着尘埃和古老墨水的气味。' },
+  { speaker:'', narration:true, text:'脚步声在空旷的大厅里回响。然后——一个声音从书架深处传来。' },
+  { speaker:'？？？', text:'欢迎，契约者。我等你很久了。' },
+  { cmd:'char', id:'vera', pos:'center', wait:600 },
+  { speaker:'', narration:true, text:'一个女人从书架间走出。银白色的长发垂至腰间，瞳孔是淡紫色的——像两颗遥远的星辰。她穿着一袭深蓝色的长袍，上面绣着和星痕之书相同的纹路。' },
+  { speaker:'？？？', text:'我是薇拉。星痕大图书馆的守护者——也是记忆的编织者。' },
+  { speaker:'凯恩', text:'记忆的……编织者？' },
+  { speaker:'薇拉', text:'每一个进入图书馆的人，都要交出一段记忆。而我负责守护这些记忆——让它们不会消散，不会被遗忘。' },
+  { speaker:'莱拉', text:'（声音微颤）……薇拉。好久不见。' },
+  { speaker:'薇拉', text:'（看向莱拉，眼中闪过一丝复杂的情绪）莱拉。三百年了。你还是老样子。' },
+  { speaker:'薇拉', text:'（转向凯恩）契约者，你来对了。你身上有太多问题需要答案。' },
+  { speaker:'薇拉', text:'让我告诉你关于马洛维斯的真相吧。' },
+  { speaker:'薇拉', text:'三百年前，马洛维斯是星痕守护者中最杰出的一位。他和莱拉——你的守护灵——曾是并肩作战的伙伴。' },
+  { speaker:'凯恩', text:'（看向莱拉）……莱拉？' },
+  { speaker:'', narration:true, text:'莱拉低下了头，没有说话。' },
+  { speaker:'薇拉', text:'马洛维斯发现了星痕之书的一个秘密——三块碎片可以重铸这本书，赋予持有者改写世界规则的力量。' },
+  { speaker:'薇拉', text:'他想用这种力量封印所有的裂隙。但他没有意识到——改写规则的代价，是抹消所有与旧规则相关的记忆。' },
+  { speaker:'薇拉', text:'换句话说——他想拯救世界，但代价是让所有人忘记这个世界原本的样子。' },
+  { speaker:'凯恩', text:'……那和毁灭有什么区别？' },
+  { speaker:'薇拉', text:'（微微点头）聪明。莱拉当时也是这么说的。但马洛维斯听不进去——他已经走得太远了。' },
+  { speaker:'薇拉', text:'还有一件事。关于你的爷爷。' },
+  { speaker:'凯恩', text:'（握紧围巾）……你知道我爷爷？' },
+  { speaker:'薇拉', text:'二十五年前，你爷爷也曾站在这间图书馆里。他是上一代星痕守护者。' },
+  { speaker:'', narration:true, text:'凯恩愣住了。' },
+  { speaker:'薇拉', text:'他进入图书馆时，也付出了一段记忆——他自己的笑容。从那以后，他就再也没有笑过。' },
+  { speaker:'凯恩', text:'（声音颤抖）……爷爷从来不笑，就是因为这个？' },
+  { speaker:'薇拉', text:'他把所有的温柔都留给了你，却再也无法用笑容表达。这是守护者的代价。' },
+  { speaker:'薇拉', text:'他发现了马洛维斯正在苏醒的迹象，于是做了一个决定——把星痕之书封印在一个孩子体内。' },
+  { speaker:'薇拉', text:'那个孩子，就是你，凯恩。' },
+  { speaker:'凯恩', text:'……所以星痕之书从天上掉下来，不是偶然？' },
+  { speaker:'薇拉', text:'从来都不是。你体内的封印在你十六岁那年解除了——因为你的灵魂已经足够强大，能够承受星痕之书的力量。' },
+  { speaker:'莱拉', text:'（终于开口）……对不起，凯恩。我应该早点告诉你的。' },
+  { speaker:'凯恩', text:'（沉默了一会儿，然后摇了摇头）没关系。至少现在我知道了。' },
+  { speaker:'薇拉', text:'现在，你需要通过三道封印，才能获得月光碎片——三块碎片中的第一块。' },
+  { speaker:'薇拉', text:'第一道封印——真相之印。' },
+  { speaker:'', narration:true, text:'薇拉挥动手臂，周围的书架缓缓移动，露出一面巨大的石碑。石碑上刻着密密麻麻的文字，在蓝光中闪烁。' },
+  { speaker:'薇拉', text:'真相之印会考验你面对真相的勇气。选择你最想了解的真相——' },
+  { choices:[
+    { text:'「我想知道……世界的裂隙到底有多大。」', jump:470 },
+    { text:'「我想知道……爷爷为什么离开。」', jump:475 },
+    { text:'「我想知道……莱拉隐瞒了什么。」', jump:481 }
+  ], prompt:'石碑上的文字开始旋转——' },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'石碑上浮现出一幅地图。大陆上布满了红色的裂纹——比凯恩想象的多得多。' },
+  { speaker:'薇拉', text:'裂隙已经蔓延到了大陆的三分之一。如果不加阻止，十年之内，整个世界都会被吞噬。' },
+  { speaker:'凯恩', text:'（深吸一口气）……我明白了。' },
+  { cmd:'jump', target:488, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'石碑上浮现出一个年轻男人的身影——和凯恩有几分相似。他站在图书馆里，手中捧着星痕之书。' },
+  { speaker:'薇拉', text:'你爷爷在这里完成了守护者的试炼。但他发现了一个秘密——马洛维斯的封印正在松动。' },
+  { speaker:'薇拉', text:'他离开家，是为了寻找加固封印的方法。但他失败了——最终只能把书封印在你体内。' },
+  { speaker:'凯恩', text:'（声音有些哽咽）他不是抛弃我们……他是在保护我们。' },
+  { cmd:'jump', target:488, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'石碑上浮现出莱拉的身影——但不是现在的莱拉。是三百年前的她，站在一个男人身边。' },
+  { speaker:'薇拉', text:'莱拉曾经是马洛维斯的守护灵。他们一起长大，一起战斗，一起守护星痕之书。' },
+  { speaker:'薇拉', text:'当马洛维斯走向疯狂时，莱拉亲手封印了他——代价是她自己的大部分力量。' },
+  { speaker:'莱拉', text:'（声音很轻）……他是我最好的朋友。' },
+  { speaker:'凯恩', text:'……莱拉。' },
+  { cmd:'jump', target:488, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'薇拉', text:'真相之印——通过。' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { speaker:'', narration:true, text:'石碑上的蓝光变成了金色，然后缓缓消散。' },
+  { speaker:'薇拉', text:'第二道封印——选择之印。' },
+  { speaker:'', narration:true, text:'另一面石碑浮现。这一次，上面没有文字——只有三个发光的符号。' },
+  { speaker:'薇拉', text:'选择之印考验的不是知识，而是决心。告诉我，你最想守护的是什么——' },
+  { choices:[
+    { text:'「我想守护这个世界。」', jump:498 },
+    { text:'「我想守护我在乎的人。」', jump:503 },
+    { text:'「我想守护爷爷的遗志。」', jump:509 }
+  ], prompt:'三个符号在凯恩面前旋转——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我想守护这个世界。所有人——包括那些我从未见过的人。' },
+  { speaker:'薇拉', text:'宏大的愿望。但记住——一个人的肩膀，扛不起整个世界。' },
+  { speaker:'凯恩', text:'所以我有同伴。' },
+  { cmd:'jump', target:515, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我想守护我在乎的人。奶奶、菲恩、莱拉……还有你，薇拉。' },
+  { speaker:'薇拉', text:'（微微一愣）……我？' },
+  { speaker:'凯恩', text:'你在这里守了三千年。总得有人记得你。' },
+  { speaker:'薇拉', text:'（嘴角微微上扬）……有意思的答案。' },
+  { cmd:'jump', target:515, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我想守护爷爷的遗志。他把一切都托付给了我——我不能让他失望。' },
+  { speaker:'薇拉', text:'你爷爷在这里的时候，也说过类似的话。' },
+  { speaker:'凯恩', text:'……真的？' },
+  { speaker:'薇拉', text:'真的。而且他做到了——他把你保护得很好。' },
+  { cmd:'jump', target:515, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'薇拉', text:'选择之印——通过。' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { speaker:'薇拉', text:'最后一道封印——牺牲之印。这是最难的一道。' },
+  { speaker:'', narration:true, text:'第三面石碑浮现。这一次，石碑上什么都没有——只有一片空白。' },
+  { speaker:'薇拉', text:'牺牲之印不需要你选择——它需要你承诺。告诉我，你愿意为了这条路放弃什么——' },
+  { choices:[
+    { text:'「我愿意放弃……回到过去的生活。」', jump:524 },
+    { text:'「我愿意放弃……星痕之书的力量。」', jump:529 },
+    { text:'「我愿意放弃……我自己的自由。」', jump:534 }
+  ], prompt:'空白的石碑在等待凯恩的回答——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我愿意放弃回到过去的生活。不管这条路通向哪里——我都不会回头。' },
+  { speaker:'', narration:true, text:'石碑上浮现出一行字："永不回头。"' },
+  { speaker:'凯恩', text:'……永不回头。' },
+  { cmd:'jump', target:540, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'如果有一天，星痕之书的力量变成了负担——我愿意放弃它。' },
+  { speaker:'', narration:true, text:'石碑上浮现出一行字："力量非永恒。"' },
+  { speaker:'凯恩', text:'……我明白。力量只是工具，不是目的。' },
+  { cmd:'jump', target:540, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我愿意放弃我自己的自由。如果这条路需要我永远守护星痕——我接受。' },
+  { speaker:'', narration:true, text:'石碑上浮现出一行字："守护者无归期。"' },
+  { speaker:'莱拉', text:'（轻声）凯恩……你知道这意味着什么吗？' },
+  { speaker:'凯恩', text:'我知道。但我愿意。' },
+  { cmd:'jump', target:540, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'薇拉', text:'牺牲之印——通过。' },
+  { cmd:'effect', effect:'flash', wait:600 },
+  { speaker:'', narration:true, text:'三面石碑同时发光，蓝光汇聚在大厅中央。光芒散去后，一块月白色的水晶悬浮在空中——散发着柔和的银色光芒。' },
+  { speaker:'薇拉', text:'月光碎片。三块碎片中的第一块。它能够暂时压制裂隙的扩张。' },
+  { speaker:'', narration:true, text:'凯恩伸出手，月光碎片缓缓落入他的掌心。冰凉的触感，像握住了一片月光。' },
+  { cmd:'sfx', effect:'flash', wait:300 },
+  { speaker:'凯恩', text:'（低头看着碎片）这就是……第一块碎片。' },
+  { speaker:'莱拉', text:'还有两块。但至少——我们迈出了第一步。' },
+  { speaker:'', narration:true, text:'突然，图书馆的灯光剧烈闪烁。书架上的书卷纷纷掉落，地面开始震动。' },
+  { speaker:'薇拉', text:'（脸色骤变）……不可能。他怎么找到这里的？' },
+  { speaker:'', narration:true, text:'大厅入口的阴影中，一团漆黑的雾气涌了进来。雾气中隐约可见一个人形的轮廓——和浮空城出现的那个影子一模一样。' },
+  { speaker:'？？？', text:'（低沉的声音）月光碎片……我闻到了它的味道。' },
+  { speaker:'莱拉', text:'（声音冰冷）马洛维斯的影子。他追踪碎片的气息找到了这里。' },
+  { speaker:'薇拉', text:'图书馆的防御系统已经被他绕过了。契约者——你必须带着碎片离开。现在。' },
+  { speaker:'', narration:true, text:'影子开始向他们逼近。黑雾所过之处，书架腐朽，石碑碎裂。' },
+  { choices:[
+    { text:'「正面迎战。莱拉，帮我！」', jump:559 },
+    { text:'「快跑！往飞艇方向撤退！」', jump:559 },
+    { text:'「薇拉，月光碎片能对付他吗？」', jump:574 }
+  ], prompt:'影子越来越近——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'莱拉，帮我！' },
+  { speaker:'', narration:true, text:'莱拉显形，掌心亮起星光。凯恩将月光碎片举在身前——碎片发出耀眼的银光，和莱拉的星光交织在一起。' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { speaker:'', narration:true, text:'影子被光芒击中，发出一声无声的嘶鸣，向后退了几步。但很快又重新聚拢。' },
+  { speaker:'薇拉', text:'你们的力量不够！快走——我来拖住它！' },
+  { speaker:'', narration:true, text:'薇拉张开双臂，图书馆的书页纷纷飞起，形成一道纸墙挡在影子面前。' },
+  { cmd:'jump', target:571, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'快跑！往飞艇方向撤退！' },
+  { speaker:'', narration:true, text:'三人转身就跑。影子在身后紧追不舍，黑雾吞噬着走廊两侧的一切。' },
+  { speaker:'菲恩', text:'（在飞艇旁喊道）这边！引擎已经启动了！' },
+  { speaker:'', narration:true, text:'凯恩回头看了一眼——薇拉没有跟来。她站在图书馆深处，张开双臂，用最后的力量维持着防御。' },
+  { speaker:'凯恩', text:'薇拉——！' },
+  { cmd:'jump', target:581, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'薇拉，月光碎片能对付他吗？' },
+  { speaker:'薇拉', text:'碎片的力量……也许能暂时压制他。但你还没学会控制它。' },
+  { speaker:'凯恩', text:'那就现在学！' },
+  { speaker:'', narration:true, text:'凯恩将月光碎片高举过头。碎片爆发出强烈的银色光芒——整个图书馆都被照亮了。' },
+  { cmd:'effect', effect:'flash', wait:500 },
+  { speaker:'', narration:true, text:'影子发出痛苦的嘶鸣，身形急剧缩小。但它没有消失——只是暂时被压制住了。' },
+  { speaker:'薇拉', text:'快走！这种压制持续不了多久！' },
+  { cmd:'jump', target:571, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩、莱拉和菲恩冲出图书馆大门。寒风扑面而来，飞艇就在不远处。' },
+  { speaker:'', narration:true, text:'凯恩跑了几步，回头看了一眼——图书馆的大门正在关闭。薇拉的身影在门缝中越来越小。' },
+  { speaker:'薇拉', text:'（声音从门缝中传来）契约者——记住，月光碎片只是开始。还有两块碎片在等你。' },
+  { speaker:'薇拉', text:'下一块……在天空之城。小心那里的风暴。' },
+  { speaker:'', narration:true, text:'大门彻底关闭。黑曜石的墙壁上，裂隙的黑纹正在蔓延。' },
+  { cmd:'scene', bg:'airship', wait:1200 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'逆风号紧急升空。菲恩把引擎推到最大，飞艇在暴风雪中剧烈颠簸。' },
+  { speaker:'', narration:true, text:'凯恩坐在船舱里，手中紧握着月光碎片。碎片的光芒很微弱——但很稳定，像一颗安静的心脏在跳动。' },
+  { speaker:'菲恩', text:'（回头看了一眼）……图书馆怎么样了？' },
+  { speaker:'凯恩', text:'……我不知道。薇拉还在里面。' },
+  { speaker:'莱拉', text:'（声音疲惫但坚定）薇拉是图书馆的守护者。只要图书馆还在，她就不会有事。' },
+  { speaker:'菲恩', text:'那个黑袍的影子呢？' },
+  { speaker:'莱拉', text:'那只是马洛维斯的一个分身。真正的他……还在某个地方等待着。' },
+  { speaker:'', narration:true, text:'飞艇穿过暴风雪，回到了晴朗的天空。阳光洒在甲板上，但没有人觉得温暖。' },
+  { speaker:'凯恩', text:'（低头看着月光碎片）薇拉说，下一块碎片在天空之城。' },
+  { speaker:'菲恩', text:'天空之城？那比浮空城还远。而且——（她看了一眼仪表盘）——薇拉说的风暴，我是听说过的。' },
+  { speaker:'菲恩', text:'天空之城外围有一片永恒的雷暴区。飞艇进去基本等于自杀。' },
+  { speaker:'凯恩', text:'……但我们还是要去。' },
+  { speaker:'菲恩', text:'（叹了口气，然后笑了）行吧。反正跟你在一起，我这辈子的刺激都提前用完了。' },
+  { speaker:'', narration:true, text:'莱拉站在船头，望着远方。风把她的长发吹起，她的表情比以往任何时候都要复杂。' },
+  { speaker:'莱拉', text:'（轻声，像是自言自语）天空之城……那里有我最不想回去的记忆。' },
+  { speaker:'', narration:true, text:'逆风号朝着天际线飞去。月光碎片在凯恩怀中微微发光——像一颗刚刚点亮的星星。' },
+  { speaker:'', narration:true, text:'远方的天空中，隐约可见一片翻涌的雷云。风暴在等待。' },
+  { speaker:'', narration:true, text:'第二章 · 冰原的图书馆 —— 完 ——' },
+  { speaker:'', narration:true, text:'—— 第三章 · 天空之城的风暴 ——' },
+  { cmd:'scene', bg:'port', wait:800 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', wait:300 },
+  { speaker:'', narration:true, text:'从冰原回来之后，逆风号在十字风港停泊了整整三天。菲恩几乎没合眼——她在修飞艇，也在研究从师父工作室带回来的图纸。' },
+  { speaker:'菲恩', text:'（擦了擦手上的机油）逆风号修好了。而且我根据师父的图纸，给引擎加装了一个魔力增幅器。' },
+  { speaker:'凯恩', text:'魔力增幅器？' },
+  { speaker:'菲恩', text:'简单说——能飞得更高。天空之城在浮空城的正上方，比任何航线都高。' },
+  { speaker:'', narration:true, text:'凯恩坐在栈桥边上，手中捧着月光碎片。碎片的光芒比在图书馆时暗淡了一些，但依然温暖。他试着将星痕之力注入碎片——' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'', narration:true, text:'碎片猛地亮了一下，然后光芒失控般地向外扩散。凯恩赶紧松手，碎片掉在甲板上，弹了两下才安静下来。' },
+  { speaker:'凯恩', text:'……还是控制不好。' },
+  { cmd:'char', id:'lyra', pos:'left', wait:400 },
+  { speaker:'莱拉', text:'（从星痕之书中浮现，比之前透明了一些）你的力量增长得太快了。身体还没来得及适应。' },
+  { speaker:'凯恩', text:'莱拉！你醒了？' },
+  { speaker:'莱拉', text:'嗯。恢复了大半。（看了看凯恩手中的碎片）天空之城……我们必须尽快出发。' },
+  { speaker:'菲恩', text:'（走过来，把一张海图摊在桌上）天空之城在浮空城的正上方。需要穿过浮空城继续向上飞——直到进入"风暴之墙"。' },
+  { speaker:'凯恩', text:'风暴之墙？' },
+  { speaker:'菲恩', text:'永恒的雷暴区。飞艇进去基本等于自杀——但如果不穿过去，就到不了天空之城。' },
+  { cmd:'scene', bg:'airship', wait:1200 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'逆风号再次升空。这一次，飞艇没有停留在浮空城——而是继续向上。' },
+  { speaker:'', narration:true, text:'云层越来越厚，天空的颜色从蓝变成了铅灰，又从铅灰变成了漆黑。闪电在云层间穿梭，照亮了飞艇周围翻涌的雾气。' },
+  { speaker:'菲恩', text:'（紧握操纵杆）风暴之墙就在前面！' },
+  { speaker:'', narration:true, text:'前方的天空中，一道巨大的雷暴屏障横亘在天地之间。闪电如瀑布般倾泻而下，雷声震耳欲聋。' },
+  { speaker:'莱拉', text:'风暴之墙——天空之城的守护屏障。三百年前，它是为了防止外人闯入而设下的。' },
+  { speaker:'凯恩', text:'现在呢？' },
+  { speaker:'莱拉', text:'现在……没人知道它还受不受控制。' },
+  { choices:[
+    { text:'「直接冲过去。」', jump:659 },
+    { text:'「绕路，找风暴的薄弱点。」', jump:666 },
+    { text:'「用月光碎片开路。」', jump:672 }
+  ], prompt:'风暴之墙近在咫尺——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'直接冲过去！菲恩，全速前进！' },
+  { speaker:'菲恩', text:'（咧嘴一笑）这才像话！抓紧了！' },
+  { speaker:'', narration:true, text:'菲恩猛推操纵杆，逆风号如同一支利箭射入雷暴。船身剧烈震动，闪电劈在船舷上，木板碎裂。' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'', narration:true, text:'凯恩死死抓住栏杆。风暴的力量几乎要把他甩出去——但他咬紧牙关，一步一步向船头挪去。' },
+  { cmd:'jump', target:679, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'绕路。找风暴的薄弱点。' },
+  { speaker:'莱拉', text:'（指向右侧）那边——风暴的边缘有一条缝隙。很窄，但足够飞艇通过。' },
+  { speaker:'菲恩', text:'收到。逆风号转向——' },
+  { speaker:'', narration:true, text:'飞艇小心翼翼地沿着风暴边缘飞行。雷电在船舷外炸响，但始终没有直接命中。菲恩的驾驶技术在这里展现得淋漓尽致。' },
+  { cmd:'jump', target:679, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'用月光碎片开路。' },
+  { speaker:'', narration:true, text:'凯恩将月光碎片举过头顶。碎片发出耀眼的银色光芒——光芒与雷电碰撞，发出震耳欲聋的轰鸣。' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { speaker:'', narration:true, text:'银色的光芒在风暴中撕开了一条通道。雷电被月光碎片的力量推开，逆风号沿着通道疾驰而过。' },
+  { speaker:'莱拉', text:'（轻声）……碎片的力量比我想的更强。但你的身体在颤抖——别过度使用。' },
+  { cmd:'jump', target:679, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'穿过风暴之墙的那一刻，一切都安静了。' },
+  { cmd:'scene', bg:'skycity', wait:1500 },
+  { cmd:'bgm', bg:'skycity', wait:500 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'天空之城——一座悬浮在雷云之上的城市。' },
+  { speaker:'', narration:true, text:'白色的大理石建筑在阳光下闪烁，但一切都静止了。没有风，没有声音，甚至没有灰尘在空气中飘浮。' },
+  { speaker:'', narration:true, text:'这座城市……被时间遗忘了。' },
+  { speaker:'菲恩', text:'（低声）三百年……这里已经三百年没有任何变化了。' },
+  { speaker:'', narration:true, text:'城市中央，一座巨大的水晶塔拔地而起。塔身散发着微弱的蓝光——和浮空城的水晶塔相似，但更加古老，更加宏伟。' },
+  { speaker:'莱拉', text:'（声音微微颤抖）天空之城……我回来了。' },
+  { speaker:'凯恩', text:'莱拉？你没事吧？' },
+  { speaker:'莱拉', text:'（摇了摇头）没事。只是……想起了很多事。' },
+  { choices:[
+    { text:'「直接去水晶塔。」', jump:698 },
+    { text:'「先探索一下这座城市。」', jump:703 },
+    { text:'「菲恩，你能研究一下这里的机械吗？」', jump:709 }
+  ], prompt:'三人站在城市的入口处——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'直接去水晶塔。碎片在那里。' },
+  { speaker:'莱拉', text:'嗯。跟我来。' },
+  { speaker:'', narration:true, text:'三人沿着寂静的街道走向水晶塔。脚步声在空旷的城市中回响，像是唯一的声音。' },
+  { cmd:'jump', target:715, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'先探索一下这座城市。三百年没变……也许能找到什么线索。' },
+  { speaker:'', narration:true, text:'三人在城市中穿行。街道两旁的建筑保持着三百年前的样子——商店的招牌还在，街边的长椅上还放着一本书。' },
+  { speaker:'菲恩', text:'（拿起那本书，翻了翻）书页没有变脆……时间真的在这里停止了。' },
+  { speaker:'莱拉', text:'天空之城的封印。当封印启动时，这里的一切都被定格在三百年前的那个瞬间。' },
+  { cmd:'jump', target:715, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'菲恩，你能研究一下这里的机械吗？' },
+  { speaker:'菲恩', text:'（眼睛一亮）正合我意。这里的机械结构比浮空城先进得多——如果能搞清楚原理……' },
+  { speaker:'', narration:true, text:'菲恩蹲在一个机械装置前，开始拆解。凯恩和莱拉在旁边等着。' },
+  { speaker:'菲恩', text:'（兴奋地）这些齿轮……是用星痕之力驱动的！三百年前的技术，比现在先进了至少一百年！' },
+  { cmd:'jump', target:715, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'三人来到水晶塔前的广场。巨大的水晶塔矗立在他们面前，塔身的蓝光在寂静中微微脉动。' },
+  { speaker:'', narration:true, text:'然后——他们看到了他。' },
+  { cmd:'char', id:'maloveus', pos:'center', wait:800 },
+  { cmd:'char', id:'kaine', pos:'right', wait:0 },
+  { cmd:'char', id:'lyra', pos:'left', wait:0 },
+  { speaker:'', narration:true, text:'一个高瘦的人影从水晶塔上缓缓飘落。深色长袍，苍白的面容，一双眼睛在黑暗中隐隐发光——紫色与黑色交织，像两颗遥远的星辰。' },
+  { speaker:'', narration:true, text:'这一次，他不是影子。不是分身。是真正的马洛维斯。' },
+  { speaker:'马洛维斯', text:'（声音低沉而平静）契约者。我们终于见面了——面对面的。' },
+  { speaker:'莱拉', text:'（声音冰冷）马洛维斯。' },
+  { speaker:'马洛维斯', text:'（看了莱拉一眼）莱拉。三百年了。你还是老样子。' },
+  { speaker:'莱拉', text:'别跟他说话，凯恩。他——' },
+  { speaker:'马洛维斯', text:'（转向凯恩，语气平和）我不是来打架的。我是来……谈谈的。' },
+  { speaker:'凯恩', text:'谈谈？你之前在浮空城差点杀了我们。' },
+  { speaker:'马洛维斯', text:'那不是我。那是我的影子——它有自己的意志。我来这里，是为了告诉你一些事情。' },
+  { choices:[
+    { text:'「……好，我听你说。」', jump:734 },
+    { text:'「我不信。莱拉，准备战斗。」', jump:743 },
+    { text:'「你为什么要告诉我？」', jump:743 }
+  ], prompt:'马洛维斯注视着凯恩——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'……好。我听你说。' },
+  { speaker:'马洛维斯', text:'（微微点头）聪明的选择。' },
+  { cmd:'jump', target:749, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我不信。莱拉，准备战斗！' },
+  { speaker:'马洛维斯', text:'（举起双手）我没有敌意。如果你不信——你可以随时动手。但在那之前，请先听完我要说的话。' },
+  { speaker:'莱拉', text:'……凯恩，先听听他说什么。小心就是了。' },
+  { cmd:'jump', target:749, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'你为什么要告诉我？你是我们的敌人。' },
+  { speaker:'马洛维斯', text:'（苦笑）敌人……莱拉是这么告诉你的吗？' },
+  { speaker:'马洛维斯', text:'三百年前，我做了一个选择。莱拉认为那是错的。但她不知道的是——我别无选择。' },
+  { speaker:'马洛维斯', text:'让我告诉你真相。' },
+  { cmd:'jump', target:749, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'马洛维斯', text:'首先——你需要获得风暴碎片。它就在水晶塔的封印之中。' },
+  { speaker:'马洛维斯', text:'但封印有三道。每一道都需要用星痕之力来破解。不是知识，不是记忆——是真正的战斗。' },
+  { speaker:'凯恩', text:'战斗？' },
+  { speaker:'马洛维斯', text:'封印会召唤出守卫者。你必须用星痕之力击败它们。准备好了吗？' },
+  { cmd:'scene', bg:'crystaltower', wait:1000 },
+  { cmd:'bgm', bg:'battle', wait:500 },
+  { cmd:'char', id:'kaine', pos:'center', wait:300 },
+  { speaker:'', narration:true, text:'水晶塔的大门缓缓打开。内部是一个巨大的圆形大厅，三道半透明的光幕依次排列在前方。' },
+  { speaker:'', narration:true, text:'第一道封印亮起——一个由水晶构成的守卫者出现在他们面前。它没有面孔，但全身散发着危险的光芒。' },
+  { speaker:'莱拉', text:'第一道封印。凯恩——你需要用星痕之力对抗它。' },
+  { speaker:'凯恩', text:'（握紧月光碎片）我试试。' },
+  { speaker:'', narration:true, text:'凯恩将月光碎片举在身前。碎片发出银色的光芒——但守卫者的攻击瞬间袭来，凯恩被击退了几步。' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'凯恩', text:'（喘着气）力量……太强了。' },
+  { choices:[
+    { text:'「用月光碎片硬扛！」', jump:768 },
+    { text:'「莱拉，教我控制它！」', jump:774 },
+    { text:'「菲恩，配合我！」', jump:782 }
+  ], prompt:'守卫者再次袭来——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'用月光碎片硬扛！' },
+  { speaker:'', narration:true, text:'凯恩将月光碎片挡在身前。碎片吸收了守卫者的攻击——但碎片上出现了一道细微的裂纹。' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'', narration:true, text:'碎片的力量反弹回去，守卫者被击碎了。但凯恩的手在颤抖——碎片的裂纹让他心疼。' },
+  { cmd:'jump', target:789, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'莱拉，教我控制它！' },
+  { speaker:'莱拉', text:'（飘到凯恩身边）闭上眼睛。感受碎片的脉动——和你的呼吸同步。' },
+  { speaker:'', narration:true, text:'凯恩闭上眼睛。月光碎片的光芒在他的掌心跳动——像一颗安静的心脏。他深吸一口气，让自己的呼吸和碎片的脉动同步。' },
+  { speaker:'莱拉', text:'现在——睁开眼睛。把力量引导出去。' },
+  { speaker:'', narration:true, text:'凯恩睁开眼睛。银色的光芒从碎片中涌出——不是狂暴的爆发，而是一道精准的光束。光束击中守卫者，将其贯穿。' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { cmd:'jump', target:789, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'菲恩，配合我！' },
+  { speaker:'菲恩', text:'（举起扳手）早就准备好了！' },
+  { speaker:'', narration:true, text:'菲恩冲上前，用扳手砸向守卫者的关节——守卫者的动作迟缓了一瞬。凯恩抓住机会，将月光碎片的力量集中在一点，击中了守卫者的核心。' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'', narration:true, text:'守卫者碎裂了。菲恩和凯恩相视一笑。' },
+  { cmd:'jump', target:789, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'第一道封印碎裂了。光芒散去后，第二道封印亮起。' },
+  { speaker:'', narration:true, text:'这一次，守卫者更大、更强。但凯恩已经找到了感觉。他握紧碎片，深吸一口气——' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { speaker:'', narration:true, text:'第二道封印也被攻破了。' },
+  { speaker:'', narration:true, text:'第三道封印——最后一道。这一次，没有守卫者。只有一道光幕，静静地挡在前方。' },
+  { speaker:'', narration:true, text:'凯恩伸出手，月光碎片的光芒与光幕接触——碎片开始共鸣。银色的光芒与蓝色的光芒交织在一起。' },
+  { cmd:'effect', effect:'flash', wait:500 },
+  { speaker:'', narration:true, text:'光幕碎裂了。一块暗紫色的水晶从光芒中浮现——散发着强大的、脉动的能量。' },
+  { speaker:'莱拉', text:'风暴碎片。第二块碎片。' },
+  { speaker:'', narration:true, text:'凯恩伸出手，风暴碎片缓缓落入他的掌心。温热的触感，像握住了一团风暴。' },
+  { speaker:'凯恩', text:'（低头看着手中的两块碎片）月光碎片……风暴碎片。还有一块。' },
+  { cmd:'scene', bg:'skycity', wait:1000 },
+  { cmd:'bgm', bg:'skycity', wait:500 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'maloveus', pos:'center', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'当凯恩走出水晶塔时，马洛维斯还在原地等着。他的表情没有变化——像一座石像。' },
+  { speaker:'马洛维斯', text:'恭喜你，契约者。现在——让我告诉你真相。' },
+  { speaker:'马洛维斯', text:'三百年前，我发现了星痕之书的一个秘密。三块碎片可以重铸这本书——赋予持有者改写世界规则的力量。' },
+  { speaker:'凯恩', text:'薇拉告诉过我。你想用这种力量封印裂隙——但代价是抹消所有人的记忆。' },
+  { speaker:'马洛维斯', text:'（摇头）薇拉只说对了一半。' },
+  { speaker:'马洛维斯', text:'世界裂隙不是我造成的。它是星痕之书本身在崩坏。' },
+  { speaker:'凯恩', text:'……什么？' },
+  { speaker:'马洛维斯', text:'星痕之书记录着世界的一切记忆。但记忆是有重量的。三千年、五千年、一万年——记忆越来越多，书越来越重。' },
+  { speaker:'马洛维斯', text:'终于有一天，书承受不住了。裂隙，就是书页之间的缝隙——是记忆溢出的痕迹。' },
+  { speaker:'莱拉', text:'（声音颤抖）……你为什么不早说？' },
+  { speaker:'马洛维斯', text:'我说了。三百年前，我说了。但你不信。你认为我想毁灭世界。' },
+  { speaker:'马洛维斯', text:'（转向凯恩）如果不重铸星痕之书，十年之内，裂隙会吞噬整个世界。这不是威胁——这是物理定律。' },
+  { choices:[
+    { text:'「……我相信你。」', jump:822 },
+    { text:'「我不相信。你在骗我。」', jump:826 },
+    { text:'「你为什么告诉我这些？」', jump:831 }
+  ], prompt:'马洛维斯注视着凯恩——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'……我相信你。' },
+  { speaker:'马洛维斯', text:'（微微点头）谢谢你。三百年了——终于有人愿意听我说话。' },
+  { cmd:'jump', target:836, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'我不相信。你在骗我。' },
+  { speaker:'马洛维斯', text:'（苦笑）你可以不信。但裂隙不会因为你不信就停止扩张。' },
+  { speaker:'马洛维斯', text:'去看看吧。去大陆的边缘看看裂隙有多大。然后——再决定要不要相信我。' },
+  { cmd:'jump', target:836, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'你为什么告诉我这些？你是我们的敌人。' },
+  { speaker:'马洛维斯', text:'因为我已经没有时间了。三百年的封印消耗了我大部分力量。我活不了多久了。' },
+  { speaker:'马洛维斯', text:'在死之前，我想看到有人能完成重铸——不是为了力量，而是为了拯救这个世界。' },
+  { cmd:'jump', target:836, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'突然，天空之城开始震动。地面出现了裂缝，建筑开始崩塌。' },
+  { cmd:'effect', effect:'dark', wait:300 },
+  { speaker:'马洛维斯', text:'（脸色骤变）不好——三百年的时间静止被打破了。' },
+  { speaker:'莱拉', text:'是碎片的力量。取出碎片的同时，也打破了封印。' },
+  { speaker:'', narration:true, text:'城市在加速崩塌。三百年的尘埃在一瞬间涌出，建筑在几秒钟内化为粉末。' },
+  { speaker:'菲恩', text:'（从远处跑来）飞艇在那边！快跑！' },
+  { choices:[
+    { text:'「用风暴碎片保护大家！」', jump:847 },
+    { text:'「先救菲恩！」', jump:853 },
+    { text:'「相信莱拉！」', jump:859 }
+  ], prompt:'城市在崩塌——' },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'风暴碎片——保护大家！' },
+  { speaker:'', narration:true, text:'凯恩将风暴碎片举过头顶。碎片爆发出强烈的紫色光芒——一道风暴屏障在三人周围展开，挡住了坠落的碎石。' },
+  { cmd:'effect', effect:'flash', wait:400 },
+  { speaker:'', narration:true, text:'三人在风暴屏障的保护下冲向飞艇。' },
+  { cmd:'jump', target:864, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'菲恩——！' },
+  { speaker:'', narration:true, text:'一块巨大的碎石朝菲恩砸去。凯恩冲上前，用月光碎片的力量击碎了碎石。' },
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'菲恩', text:'（喘着气）谢谢……快跑！' },
+  { cmd:'jump', target:864, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'莱拉——！' },
+  { speaker:'莱拉', text:'（飘在空中，张开双臂）跟我来！我知道出路！' },
+  { speaker:'', narration:true, text:'莱拉的身形发出耀眼的光芒——她在用最后的力量为他们指引方向。三人在崩塌的城市中狂奔，跟着莱拉的光芒。' },
+  { cmd:'jump', target:864, wait:100 },
+  { cmd:'label', wait:0 },
+  { cmd:'scene', bg:'airship', wait:1200 },
+  { cmd:'char', id:'kaine', pos:'right', wait:300 },
+  { cmd:'char', id:'finn', pos:'center', wait:300 },
+  { cmd:'char', id:'lyra', pos:'left', wait:300 },
+  { speaker:'', narration:true, text:'逆风号紧急升空。天空之城在他们身后崩塌——三百年的建筑在一瞬间化为尘埃，消散在风中。' },
+  { speaker:'', narration:true, text:'风暴之墙也在消散。没有了天空之城的封印，雷暴开始减弱，最终化为普通的云层。' },
+  { speaker:'菲恩', text:'（看着身后消散的城市）……结束了？' },
+  { speaker:'莱拉', text:'（声音疲惫）天空之城……结束了。但我们的旅程还没有。' },
+  { speaker:'', narration:true, text:'凯恩坐在甲板上，手中握着两块碎片。月光碎片和风暴碎片——一冷一热，一银一紫。' },
+  { speaker:'凯恩', text:'（低头看着碎片）马洛维斯说的是真的吗？星痕之书……真的在崩坏？' },
+  { speaker:'莱拉', text:'……我不知道。但裂隙确实在扩张。这是事实。' },
+  { speaker:'凯恩', text:'如果他说的是真的……那重铸星痕之书，真的是错误吗？' },
+  { speaker:'', narration:true, text:'莱拉没有回答。她站在船头，望着远方。风把她的长发吹起，她的表情比以往任何时候都要复杂。' },
+  { speaker:'菲恩', text:'（走过来，坐在凯恩旁边）不管怎样——你拿到了两块碎片。还有一块。' },
+  { speaker:'凯恩', text:'嗯。最后一块……在哪里？' },
+  { speaker:'莱拉', text:'（转过头）深渊。被遗忘的深渊——那里有黎明碎片。' },
+  { speaker:'凯恩', text:'（握紧碎片）那就去那里。不管真相是什么——我要亲眼看到。' },
+  { speaker:'', narration:true, text:'逆风号朝着天际线飞去。两块碎片在凯恩怀中微微发光——一银一紫，像两颗刚刚点亮的星星。' },
+  { speaker:'', narration:true, text:'远方的天空中，隐约可见一片黑暗的深渊。风暴在身后消散，而黎明——在前方等待。' },
+  { speaker:'', narration:true, text:'第三章 · 天空之城的风暴 —— 完 ——' },
+  { speaker:'', narration:true, text:'凯恩站在港口，望着远方的天空。两块碎片在怀中微微发光。'},
+  { speaker:'', narration:true, text:'一个声音从身后传来——温和、沉稳，像是早已等候多时。'},
+  { speaker:'？？？', text:'凯恩。我等你很久了。'},
+  { cmd:'char', id:'gu-nianhuai-pol', pos:'center', wait:600 },
+  { speaker:'', narration:true, text:'一个穿着深色西装的中年男人站在码头上。短发，眼神锐利而冷静，带着一种不怒自威的气场。'},
+  { speaker:'凯恩', text:'你是谁？'},
+  { speaker:'顾念怀·政', text:'（微微一笑）我叫顾念怀。或者说——我们叫顾念怀。'},
+  { speaker:'莱拉', text:'（低声）凯恩，小心。这个人……我感觉不到他的灵魂。'},
+  { speaker:'顾念怀·政', text:'因为你感觉到的，是三个灵魂。'},
+  { choices:[
+    { text:'「你到底是什么人？」', jump:700 },
+    { text:'「保持警惕。」', jump:706 },
+    { text:'「我相信你。说吧。」', jump:712 }
+  ], prompt:'凯恩打量着这个神秘的男人——'},
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩直接问道：你到底是什么人？'},
+  { speaker:'顾念怀·政', text:'一魂三体。一个灵魂，分裂成三个身体。'},
+  { cmd:'char', id:'gu-nianhuai-biz', pos:'left', wait:400 },
+  { speaker:'顾念怀·商', text:'（从旁边走来，穿着名牌西装）我是做生意的那个。'},
+  { cmd:'char', id:'gu-nianhuai-star', pos:'right', wait:400 },
+  { speaker:'顾念怀·星', text:'（从另一边走来，银白长发华丽）我是唱歌的那个。'},
+  { speaker:'凯恩', text:'（震惊）三个人……共享一个灵魂？'},
+  { speaker:'顾念怀·政', text:'是的。我们记忆互通，情感互通。我们是同一个人——却又是不同的人。'},
+  { cmd:'jump', target:718, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩后退一步，手握碎片，保持警惕。'},
+  { speaker:'顾念怀·政', text:'（举起双手）我没有恶意。如果你不信——'},
+  { cmd:'char', id:'gu-nianhuai-biz', pos:'left', wait:400 },
+  { speaker:'顾念怀·商', text:'（走过来）我可以证明。'},
+  { cmd:'char', id:'gu-nianhuai-star', pos:'right', wait:400 },
+  { speaker:'顾念怀·星', text:'（走过来，轻声唱起一首古老的歌谣）'},
+  { speaker:'', narration:true, text:'那首歌谣……凯恩从未听过，却莫名地感到熟悉。像是小时候，爷爷唱过的摇篮曲。'},
+  { speaker:'凯恩', text:'（放下戒备）……这首歌，我好像听过。'},
+  { speaker:'顾念怀·星', text:'（微笑）因为这首歌，和星痕之书一样古老。'},
+  { cmd:'jump', target:718, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩选择相信这个男人。'},
+  { speaker:'顾念怀·政', text:'（点头）谢谢你的信任。我会让你知道真相的。'},
+  { cmd:'char', id:'gu-nianhuai-biz', pos:'left', wait:400 },
+  { speaker:'顾念怀·商', text:'（走过来）真相需要证据。我来提供。'},
+  { cmd:'char', id:'gu-nianhuai-star', pos:'right', wait:400 },
+  { speaker:'顾念怀·星', text:'（走过来）而我……会唱那首歌。那首打开深渊之门的歌。'},
+  { cmd:'label', wait:0 },
+  { speaker:'顾念怀·政', text:'让我告诉你关于深渊的事。'},
+  { speaker:'顾念怀·政', text:'深渊在世界的最边缘——那里是裂隙的源头，也是星痕之书的诞生之地。'},
+  { speaker:'顾念怀·商', text:'我花了二十年，收集了进入深渊的装备。防护服、导航仪、能量护盾。'},
+  { speaker:'顾念怀·星', text:'而我……掌握着一首古老的歌谣。那是打开深渊之门的钥匙。'},
+  { speaker:'凯恩', text:'你们为什么要帮我？'},
+  { speaker:'顾念怀·政', text:'（沉默了一会儿）因为三百年前，我们的祖先……也是星痕守护者。'},
+  { speaker:'顾念怀·政', text:'他失败了。他的灵魂分裂成三份——就是我们。'},
+  { speaker:'顾念怀·商', text:'我们活着的唯一目的，就是完成他未竟的使命。'},
+  { speaker:'顾念怀·星', text:'（轻声）重铸星痕之书。或者……找到另一条路。'},
+  { choices:[
+    { text:'「我接受你们的帮助。」', jump:726 },
+    { text:'「我只接受部分帮助。」', jump:731 },
+    { text:'「我不需要帮助。」', jump:736 }
+  ], prompt:'顾念怀的三个身体同时看着凯恩——'},
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩点头：我接受你们的帮助。'},
+  { speaker:'顾念怀·政', text:'（微笑）明智的选择。'},
+  { speaker:'顾念怀·商', text:'装备已经装船了。'},
+  { speaker:'顾念怀·星', text:'歌谣……我会在需要的时候唱的。'},
+  { speaker:'', narration:true, text:'菲恩走过来，看着堆满装备的逆风号，眼睛发亮。'},
+  { speaker:'菲恩', text:'这些装备……我从来没见过！这是什么材质？'},
+  { speaker:'顾念怀·商', text:'（笑）星痕合金。比任何金属都轻，比任何金属都强。'},
+  { speaker:'菲恩', text:'（两眼放光）太棒了！'},
+  { cmd:'jump', target:741, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩想了想：我只接受部分帮助。装备我收下，但歌谣——我想先听听。'},
+  { speaker:'顾念怀·星', text:'（点头）好。'},
+  { speaker:'', narration:true, text:'顾念怀·星轻轻唱起那首古老的歌谣。旋律空灵而悠远，像是从远古传来。'},
+  { speaker:'', narration:true, text:'凯恩听着，心中涌起一股莫名的感动。这首歌……像是在呼唤他。'},
+  { speaker:'凯恩', text:'（轻声）……好。我接受。'},
+  { cmd:'jump', target:741, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩摇头：我不需要帮助。'},
+  { speaker:'顾念怀·政', text:'（沉默了一会儿）你确定？'},
+  { speaker:'凯恩', text:'我确定。星痕之书是我的责任——不是你们的。'},
+  { speaker:'顾念怀·政', text:'（叹气）好吧。但歌谣……你还是听一听。'},
+  { speaker:'', narration:true, text:'顾念怀·星轻轻唱起那首歌谣。旋律穿透风声，像一把钥匙，打开了某扇门。'},
+  { speaker:'凯恩', text:'（心中一震）……这首歌。'},
+  { speaker:'顾念怀·星', text:'（微笑）你会需要它的。'},
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'逆风号启航，朝着世界的边缘飞去。'},
+  { speaker:'', narration:true, text:'在港口的角落，两个年轻人正在帮菲恩检查引擎。'},
+  { speaker:'冯诗鑫', text:'（擦了擦手）菲恩，你这引擎该换了。'},
+  { speaker:'菲恩', text:'（不服气）它还能跑！'},
+  { speaker:'谢东淳', text:'（笑）跑是能跑，但跑不快。'},
+  { speaker:'冯诗鑫', text:'算了，帮他修修吧。'},
+  { speaker:'', narration:true, text:'两人三下五除二修好了引擎，挥手告别。'},
+  { speaker:'谢东淳', text:'（挥手）祝你们好运！'},
+  { speaker:'冯诗鑫', text:'（喊）别把船弄坏了！'},
+  { speaker:'', narration:true, text:'逆风号升空，朝着深渊飞去。'},
+  { cmd:'scene', bg:'abyss', wait:1500 },
+  { cmd:'bgm', bg:'abyss', wait:500 },
+  { speaker:'', narration:true, text:'世界的边缘。一道巨大的裂缝从地面延伸到天空，裂缝中散发着幽蓝色的光芒。'},
+  { speaker:'', narration:true, text:'裂缝前有一扇古老的石门，上面刻满了星痕纹路。'},
+  { speaker:'莱拉', text:'深渊之门。需要三个碎片同时激活才能打开。'},
+  { speaker:'凯恩', text:'（拿出碎片）那就试试。'},
+  { speaker:'', narration:true, text:'凯恩将月光碎片和风暴碎片举向石门。碎片发出耀眼的光芒——'},
+  { speaker:'', narration:true, text:'但还不够。门上还差一个凹槽。'},
+  { speaker:'莱拉', text:'黎明碎片……在门的另一边。我们需要先打开门。'},
+  { speaker:'顾念怀·星', text:'（走上前）让我来。'},
+  { speaker:'', narration:true, text:'顾念怀·星轻轻唱起那首古老的歌谣。旋律穿透风声，像一把钥匙，插入门上的锁孔。'},
+  { cmd:'effect', effect:'flash', wait:500 },
+  { speaker:'', narration:true, text:'石门缓缓打开。里面是一片永恒的黑暗。'},
+  { speaker:'', narration:true, text:'一个身影从黑暗中走出——银灰色长发，深紫色眼睛，黑金色法师长袍。'},
+  { cmd:'char', id:'maloveus', pos:'center', wait:600 },
+  { speaker:'马洛维斯', text:'凯恩。我们又见面了。'},
+  { speaker:'凯恩', text:'（握紧碎片）马洛维斯。'},
+  { speaker:'马洛维斯', text:'别紧张。我不是来打架的。'},
+  { speaker:'马洛维斯', text:'我只是想……和你谈谈。'},
+  { choices:[
+    { text:'「好。我听你说。」', jump:750 },
+    { text:'「我没什么好和你谈的。」', jump:756 },
+    { text:'「你为什么要告诉我这些？」', jump:762 }
+  ], prompt:'马洛维斯站在深渊入口，等待凯恩的回答——'},
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩选择听马洛维斯说。'},
+  { speaker:'马洛维斯', text:'三百年前，我看到了世界的裂隙。星痕之书在崩坏——不是因为外力，而是因为它本身的老化。'},
+  { speaker:'马洛维斯', text:'我试图重铸它。但我失败了——我被困在时间裂缝中三百年。'},
+  { speaker:'马洛维斯', text:'现在，裂隙已经蔓延到了大陆的三分之一。如果不做点什么，十年之内，整个世界都会崩溃。'},
+  { speaker:'凯恩', text:'……所以你不是要毁灭世界？'},
+  { speaker:'马洛维斯', text:'（苦笑）我要毁灭的是星痕之书的旧形态——让它重生。但我失败了。'},
+  { cmd:'jump', target:768, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩摇头：我没什么好和你谈的。'},
+  { speaker:'马洛维斯', text:'（叹气）你还是不相信我。'},
+  { speaker:'马洛维斯', text:'但你必须相信——世界的裂隙不是我造成的。是星痕之书本身在崩坏。'},
+  { speaker:'凯恩', text:'……什么意思？'},
+  { speaker:'马洛维斯', text:'星痕之书是世界的"心脏"。三百年来，它一直在衰竭。如果不重铸，十年内世界崩溃。'},
+  { cmd:'jump', target:768, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩直接问道：你为什么要告诉我这些？'},
+  { speaker:'马洛维斯', text:'因为你手上有两块碎片。而我……被困在时间裂缝中三百年，什么也做不了。'},
+  { speaker:'马洛维斯', text:'你是最后的希望，凯恩。'},
+  { speaker:'凯恩', text:'……你不是我的敌人吗？'},
+  { speaker:'马洛维斯', text:'（苦笑）三百年前是。但现在……我们都面对着同一个敌人——时间。'},
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'……那现在怎么办？'},
+  { speaker:'马洛维斯', text:'进入深渊。找到黎明碎片。然后——做出选择。'},
+  { speaker:'马洛维斯', text:'重铸星痕之书需要牺牲。可能是你的生命，可能是碎片的力量，也可能是……别的什么。'},
+  { speaker:'凯恩', text:'（深吸一口气）那就走吧。'},
+  { cmd:'scene', bg:'abyssinside', wait:1500 },
+  { cmd:'bgm', bg:'abyss', wait:500 },
+  { speaker:'', narration:true, text:'深渊内部——一个倒置的世界。天空在脚下，大地在头顶。'},
+  { speaker:'', narration:true, text:'到处漂浮着星痕之书的碎片，发出微弱的蓝白色光芒。巨大的岩石倒悬在空中。'},
+  { speaker:'菲恩', text:'（瞪大眼睛）这是什么鬼地方？'},
+  { speaker:'莱拉', text:'深渊——世界的最底层。这里的时间和空间都是扭曲的。'},
+  { speaker:'', narration:true, text:'在深渊的最深处，一道巨大的封印保护着一颗发出金色光芒的水晶——黎明碎片。'},
+  { speaker:'莱拉', text:'封印。需要星痕之力才能破开。'},
+  { choices:[
+    { text:'「用月光碎片和风暴碎片的力量硬破！」', jump:775 },
+    { text:'「找到封印的弱点。」', jump:781 },
+    { text:'「莱拉，你知道方法吗？」', jump:787 }
+  ], prompt:'封印散发着强大的能量——'},
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩将两个碎片举向封印，全力释放能量！'},
+  { cmd:'effect', effect:'flash', wait:500 },
+  { speaker:'', narration:true, text:'碎片发出耀眼的光芒——银色和紫色的光束射向封印。'},
+  { speaker:'', narration:true, text:'封印开始出现裂纹……但反击的力量几乎把凯恩震飞。'},
+  { speaker:'菲恩', text:'（冲上前）凯恩！'},
+  { speaker:'', narration:true, text:'菲恩用身体挡住冲击波，两人一起稳住身形。'},
+  { speaker:'凯恩', text:'（咬牙）再来一次！'},
+  { cmd:'effect', effect:'flash', wait:500 },
+  { speaker:'', narration:true, text:'封印碎裂。黎明碎片从光芒中缓缓升起。'},
+  { cmd:'jump', target:793, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩仔细观察封印的纹路，寻找弱点。'},
+  { speaker:'凯恩', text:'这里……有一个节点。'},
+  { speaker:'', narration:true, text:'凯恩将月光碎片对准节点，精准释放能量。'},
+  { cmd:'effect', effect:'flash', wait:300 },
+  { speaker:'', narration:true, text:'封印从节点处开始瓦解，像多米诺骨牌一样连锁崩溃。'},
+  { speaker:'莱拉', text:'（惊讶）你怎么找到的？'},
+  { speaker:'凯恩', text:'直觉。星痕之书在指引我。'},
+  { speaker:'', narration:true, text:'黎明碎片从光芒中缓缓升起。'},
+  { cmd:'jump', target:793, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'莱拉', text:'（闭上眼睛）让我来。'},
+  { speaker:'', narration:true, text:'莱拉伸出手，她的身体开始发出淡蓝色的光芒。'},
+  { speaker:'莱拉', text:'三百年前，我封印马洛维斯时，也封印了自己的一部分力量。现在……我要解开它。'},
+  { cmd:'effect', effect:'flash', wait:500 },
+  { speaker:'', narration:true, text:'莱拉的力量如潮水般涌出，封印在光芒中缓缓瓦解。'},
+  { speaker:'莱拉', text:'（虚弱地微笑）去吧。黎明碎片在那里。'},
+  { speaker:'', narration:true, text:'黎明碎片从光芒中缓缓升起。'},
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩伸手，握住了黎明碎片。'},
+  { cmd:'effect', effect:'flash', wait:800 },
+  { speaker:'', narration:true, text:'三块碎片——月光、风暴、黎明——同时发出耀眼的光芒。'},
+  { speaker:'', narration:true, text:'光芒中，凯恩看到了完整的真相——'},
+  { speaker:'', narration:true, text:'星痕之书不是被创造的。它是世界的"心脏"。三百年来，它一直在衰竭。'},
+  { speaker:'', narration:true, text:'如果不重铸，十年之内，整个世界都会崩溃。'},
+  { speaker:'', narration:true, text:'但重铸需要牺牲——守护者的生命，或者三块碎片的力量。'},
+  { speaker:'凯恩', text:'（睁开眼睛，声音颤抖）……原来是这样。'},
+  { speaker:'马洛维斯', text:'（出现在身后）现在你明白了。'},
+  { speaker:'马洛维斯', text:'三百年前，我试图重铸它。但我失败了——我被困在时间裂缝中，看着世界慢慢崩坏。'},
+  { speaker:'马洛维斯', text:'现在，你有三块碎片。你可以做到我做不到的事。'},
+  { choices:[
+    { text:'「让我来重铸星痕之书。」', jump:800 },
+    { text:'「让马洛维斯来重铸。」', jump:806 },
+    { text:'「有没有不需要牺牲的办法？」', jump:812 }
+  ], prompt:'三块碎片在凯恩手中发光——最终的抉择就在眼前。'},
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩握紧碎片：让我来。'},
+  { speaker:'莱拉', text:'（抓住他的手）不！你会死的！'},
+  { speaker:'凯恩', text:'（微笑）但世界会活下去。'},
+  { speaker:'马洛维斯', text:'（沉默了一会儿）……你比我勇敢。'},
+  { speaker:'', narration:true, text:'凯恩将三块碎片举向天空——'},
+  { cmd:'effect', effect:'flash', wait:1000 },
+  { speaker:'', narration:true, text:'光芒吞噬了一切。'},
+  { speaker:'', narration:true, text:'当光芒散去时，星痕之书重铸了。裂隙开始愈合。'},
+  { speaker:'', narration:true, text:'但凯恩……消失了。'},
+  { speaker:'莱拉', text:'（泪流满面）凯恩……'},
+  { speaker:'', narration:true, text:'星痕之书的光芒照耀着世界。而凯恩的故事，成为了传说。'},
+  { speaker:'', narration:true, text:'—— 结局A：守护者的牺牲 ——'},
+  { cmd:'jump', target:818, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'', narration:true, text:'凯恩看向马洛维斯：你来。'},
+  { speaker:'马洛维斯', text:'（惊讶）你确定？'},
+  { speaker:'凯恩', text:'你被困了三百年。这是你赎罪的机会。'},
+  { speaker:'马洛维斯', text:'（苦笑）好。'},
+  { speaker:'', narration:true, text:'马洛维斯接过三块碎片——'},
+  { cmd:'effect', effect:'flash', wait:1000 },
+  { speaker:'', narration:true, text:'光芒吞噬了一切。'},
+  { speaker:'', narration:true, text:'当光芒散去时，星痕之书重铸了。裂隙开始愈合。'},
+  { speaker:'', narration:true, text:'但马洛维斯……消失了。'},
+  { speaker:'莱拉', text:'（轻声）……再见了，老朋友。'},
+  { speaker:'', narration:true, text:'星痕之书的光芒照耀着世界。而马洛维斯，终于得到了安息。'},
+  { speaker:'', narration:true, text:'—— 结局B：赎罪 ——'},
+  { cmd:'jump', target:818, wait:100 },
+  { cmd:'label', wait:0 },
+  { speaker:'凯恩', text:'有没有不需要牺牲的办法？'},
+  { speaker:'马洛维斯', text:'（沉默）……我不知道。'},
+  { speaker:'顾念怀·政', text:'（走上前）也许有。'},
+  { speaker:'顾念怀·政', text:'星痕之书是世界的"心脏"。但心脏……不一定需要重铸。它也可以……进化。'},
+  { speaker:'凯恩', text:'进化？'},
+  { speaker:'顾念怀·商', text:'三块碎片代表三种力量：月光、风暴、黎明。如果把它们融合在一起——'},
+  { speaker:'顾念怀·星', text:'（唱起歌谣）星痕之书就会获得新的生命。'},
+  { speaker:'', narration:true, text:'凯恩将三块碎片举向天空。顾念怀的三个身体同时伸出手，分担力量。'},
+  { cmd:'effect', effect:'flash', wait:1000 },
+  { speaker:'', narration:true, text:'碎片开始融合——银色、紫色、金色的光芒交织在一起。'},
+  { speaker:'', narration:true, text:'星痕之书发出从未有过的光芒——不是重铸，而是进化。'},
+  { speaker:'', narration:true, text:'裂隙开始愈合。但不是消失——而是变成了新的形态。'},
+  { speaker:'', narration:true, text:'世界没有被修复。它改变了。变得更完整。'},
+  { speaker:'凯恩', text:'（睁开眼睛）成功了……？'},
+  { speaker:'莱拉', text:'（微笑）成功了。星痕之书和世界一起进化了。'},
+  { speaker:'', narration:true, text:'—— 结局C：进化 ——'},
+  { cmd:'label', wait:0 },
+  { cmd:'scene', bg:'village', wait:1500 },
+  { cmd:'bgm', bg:'finale', wait:500 },
+  { speaker:'', narration:true, text:'凯恩站在世界的边缘，看着裂隙慢慢愈合。'},
+  { speaker:'', narration:true, text:'风从远方吹来，带着熟悉的气息——那是家乡的味道。'},
+  { speaker:'莱拉', text:'（站在身边）结束了。'},
+  { speaker:'凯恩', text:'嗯。结束了。'},
+  { speaker:'菲恩', text:'（走过来）那我们接下来去哪？'},
+  { speaker:'凯恩', text:'（微笑）回家。'},
+  { speaker:'', narration:true, text:'逆风号朝着家乡飞去。夕阳的光芒照在凯恩脸上，温暖而柔和。'},
+  { speaker:'', narration:true, text:'星痕之书的故事，还没有结束。'},
+  { speaker:'', narration:true, text:'但凯恩知道——无论发生什么，他都不会再孤单。'},
+  { speaker:'', narration:true, text:'因为身边有莱拉，有菲恩，有顾念怀。'},
+  { speaker:'', narration:true, text:'还有远方等待着他的——新的冒险。'},
+  { speaker:'', narration:true, text:'第四章 · 深渊中的黎明碎片 —— 完 ——'},
+  { speaker:'', narration:true, text:'\n星痕之书 · 全剧终\n感谢你的游玩。' },
+
+];
+
+// ============================================================
+// INIT
+// ============================================================
+const game = new VisualNovel();
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && game.script && game.index > 0) game.saveGamePvt('auto');
+});
+
+game.setScenePvt('village');
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
